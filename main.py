@@ -144,20 +144,27 @@ class App:
 
         #------------------ Texte pour les aides ------------------#
         self.dict_elements = {
-            "Notions de base": 
+            "Notions de base": [
 
-                [{"Utilité" : "Quelques notions essentielles qui permettent de débuter la programmation en Python."},
+                {"Utilité" : {
+                        "text1" : "Quelques notions essentielles qui permettent de débuter la programmation en Python."}},
          
-                {"Programme" : "Un programme est un texte qui permet de commander un ordinateur. Dans notre cas, il s'agit de créer du code afin des fins spécifiques. Ce texte est composé d'instructions compréhensibles par l'ordinateur. Certaines sont spécifiques à des programmes et permettent de contrôler les instructions sur l'ordinateur (instruction additionner() par exemple), d'autres sont communes à tous les programmes en Python (voir la suite du mémo programmation). Une fois rédigé, le programme est exécuté par un interpréteur."},
+                {"Programme" : {
+                    "text1" : "Un programme est un texte qui permet de commander un ordinateur. Dans notre cas, il s'agit de créer du code afin des fins spécifiques. Ce texte est composé d'instructions compréhensibles par l'ordinateur. Certaines sont spécifiques à des programmes et permettent de contrôler les instructions sur l'ordinateur (instruction additionner() par exemple), d'autres sont communes à tous les programmes en Python (voir la suite du mémo programmation). Une fois rédigé, le programme est exécuté par un interpréteur."}},
 
-                {"Erreurs" : "Les instructions d'un programme doivent être très précises et ne comporter aucune erreur, attention aux fautes de frappe ! En cas d'erreur, l'interpréteur signale un problème dans la console. Par exemple, la ligne de code erronée avance() provoque l'affichage d'une erreur :\n<error>> Ligne 1 : le nom 'avance()' n'est pas défini</error>\n\nIl faudra donc modifier le programme à partir de ce message d'erreur, puis relancer l'exécution jusqu'à ce que le programme soit correct."},
+                {"Erreurs" : {
+                    "text1" : "Les instructions d'un programme doivent être très précises et ne comporter aucune erreur, attention aux fautes de frappe ! En cas d'erreur, l'interpréteur signale un problème dans la console. Par exemple, la ligne de code erronée addition() provoque l'affichage d'une erreur :\n<error>> Ligne 1 : le nom 'addition()' n'est pas défini</error>\n\nIl faudra donc modifier le programme à partir de ce message d'erreur, puis relancer l'exécution jusqu'à ce que le programme soit correct."}},
         
-                {"Structuration" : "Un programme doit être structuré par des décalages de texte lors de l'utilisation de certaines instructions (if, while, for, etc.). On appelle cela l'indentation du code. Si l'indentation est mauvaise, le programme ne réalise pas ce que l'on veut et cela peut même provoquer des erreurs. Ces décalages s'effectuent avec la touche tabulation du clavier. A noter que l'éditeur de programme ajoute automatiquement des décalages lors de l'utilisation de certaines instructions."},
+                {"Structuration" : {
+                    "text1" : "Un programme doit être structuré par des décalages de texte lors de l'utilisation de certaines instructions (if, while, for, etc.). On appelle cela l'indentation du code. Si l'indentation est mauvaise, le programme ne réalise pas ce que l'on veut et cela peut même provoquer des erreurs. Ces décalages s'effectuent avec la touche tabulation du clavier. A noter que l'éditeur de programme ajoute automatiquement des décalages lors de l'utilisation de certaines instructions."}},
         
-                {"Commentaires" : "Les lignes commençant par # ne sont pas prises en compte par l'interpréteur. Par exemple, la ligne de code <bold># Ceci est un commentaire</bold> n'a aucun effet. Ces lignes permettent de donner des explications dans le programme, on les appelle des commentaires. Les commentaires ne sont pas obligatoires mais ils peuvent aider à la compréhension des programmes par les autres programmeurs."}],
+                {"Commentaires" : {
+                    "text1" : "Les lignes commençant par # ne sont pas prises en compte par l'interpréteur. Par exemple, la ligne de code <bold># Ceci est un commentaire</bold> n'a aucun effet. Ces lignes permettent de donner des explications dans le programme, on les appelle des commentaires. Les commentaires ne sont pas obligatoires mais ils peuvent aider à la compréhension des programmes par les autres programmeurs."}}
+                ],
 
             "Variable": [
-                {"Utilité" : "Permet de garder en mémoire des informations au cours de l’exécution d'un programme."},
+                {"Utilité" : {
+                    "text1" : "Permet de garder en mémoire des informations au cours de l’exécution d'un programme."}},
                  
                  {
                      "Création" : {
@@ -188,7 +195,7 @@ class App:
                         "text2" : "\n<bullet>Le séparateur des nombres décimaux est le point (.)</bullet><bullet>Les chaînes de caractères doivent être entourées par des guillemets \"\".<bullet>Les variables de type booléen (qui n'existent pas en Scratch) peuvent prendre uniquement les valeurs True (vrai) ou False (faux)."
                     }
                 }
-                ]
+                ],
 
             "Conditionnelle":
 
@@ -466,9 +473,9 @@ class App:
                 else:
                     indent = bullet_indent if in_bullet else 0
                     if in_bullet and current_line:
-                        lines.append(('bullet', '•', indent - 25))
+                        lines.append(('bullet', '•', indent - 25)) if not ('bullet', '•', indent - 25) in lines else None
                     elif in_dash:
-                        lines.append(('bullet', '-', indent - 25))
+                        lines.append(('bullet', '-', indent - 25)) if not ('bullet', '-', indent - 25) in lines else None
                     lines.append(('text', ' '.join(current_line), indent))
                     current_line = [word]
                     current_width = word_width
@@ -481,6 +488,7 @@ class App:
                 elif in_dash:
                     lines.append(('bullet', '-', indent - 25))
                 lines.append(('text', ' '.join(current_line), indent))
+            print(lines)
                 
         return lines
 
@@ -535,9 +543,13 @@ class App:
                             if isinstance(value, str):
                                 lines = self.render_text_multiline(value, self.font, self.WHITE, max_width)
                                 for line in lines:
-                                    text_surface = self.font.render(line[1], True, self.WHITE)
-                                    content_surface.blit(text_surface, (LEFT_PANEL_WIDTH * 0.08, y_offset))
-                                    y_offset += 30
+                                    if line[0] == 'surface':
+                                        content_surface.blit(line[1], (LEFT_PANEL_WIDTH * 0.08, y_offset))
+                                        y_offset += line[1].get_height()
+                                    else:
+                                        text_surface = self.font.render(line[1], True, self.WHITE)
+                                        content_surface.blit(text_surface, (LEFT_PANEL_WIDTH * 0.08, y_offset))
+                                        y_offset += 30
                             elif key == 'table':
                                 table_surface = self.render_table(value, max_width)
                                 content_surface.blit(table_surface, (LEFT_PANEL_WIDTH * 0.08, y_offset))
