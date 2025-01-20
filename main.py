@@ -7,9 +7,9 @@
 
 import subprocess
 import sys
-import requests
+
 def util():
-    for i in ["pkg_resources", "packaging"]:
+    for i in ["pkg_resources", "packaging", "requests"]:
         try:
             __import__(i)
         except ImportError:
@@ -18,6 +18,7 @@ def util():
 util()
 
 import pkg_resources
+import requests
 from packaging import version
 
 def clv():
@@ -62,6 +63,8 @@ try:
                         ('io', True, False),
                         ('traceback', True, False),
                         ('typing', ['Dict', 'List', 'Tuple'], False),
+                        ('random', True, False),
+                        ('tkinter.filedialog', True, False),
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -77,6 +80,8 @@ except:
                         ('io', True, False),
                         ('traceback', True, False),
                         ('typing', ['Dict', 'List', 'Tuple'], False),
+                        ('random', True, False),
+                        ('tkinter.filedialog', True, False),
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -120,6 +125,7 @@ class App:
         self.BLACK = (0, 0, 0)
         self.RED = (255, 0, 0)
         self.GREEN = (0, 255, 0)
+        self.DARK_GREEN = (0, 128, 0)
         self.BLUE = (0, 0, 255)
         self.DARK_BLUE = (0, 0, 128)
         self.YELLOW = (255, 255, 0)
@@ -141,6 +147,123 @@ class App:
         self.slide_speed = 30  # Animation speed
         self.popup_closing = False
         #-----------------------------------------------------------------------#
+
+        #----------------------- Easter egg ------------------------------------#
+        self.click_sequence = []
+        self.last_click_time = 0
+        self.recipe_shown = False
+        self.will_test_recipe = False
+        self.recipe_scroll = 0
+        self.text_angle = 0
+        self.text_scale = 1.0
+        self.text_direction = 1
+        self.affiche = False
+        self.mirror = False
+        self.recipe_text = """CRUMBLE SALÉ AUX DEUX PATATES
+
+    Temps de préparation : 20 minutes
+    Temps de cuisson : 30 minutes
+    Temps total : 50 minutes
+
+    Pour 4 personnes :
+
+    Ingrédients:
+
+    - 2 patates douces
+    - 1 pommes de terre
+    - 15 cl de crème liquide ou semi-épaisse, ou 15cl de lait de coco
+    - 1 oignon jaune
+    - Sel
+    - Paprika
+    - Herbes de provence
+    - Poivre
+    - Muscade
+    - Cumin
+    - 2 Cuillères à soupe d'huile d'olive
+    - 50 grammes de parmesan ( râpé )
+    - 50 grammes de farine
+    - 50 grammes de beurre
+
+    Préparation:
+
+    1. Préchauffer le four à 210°C
+
+    2.  Éplucher et couper vos patates et patates douces en gros dés, et les faire cuire 5 minutes à l'eau bouillante salée.
+
+    3. Pendant ce temps, émincer votre oignon et le faire dorer dans une grande poêle avec un peu d'huile d'olive
+
+    4. Y ajouter ensuite les dés de patate et patate douce égouttés.
+
+    5. Laisser mijoter à feu moyen doux, en remuant régulièrement, et assaisonner généreusement.
+
+    6. Quand les légumes deviennent fondants (ils s'écrasent presque), couper le feu, ajouter la crème et mélanger.
+
+    6. Pendant ce temps, mélanger du bout des doigts le beurre, la farine et le parmesan de sorte à obtenir une pâte à crumble.
+
+    7. Beurrer un plat allant au four, y ajouter vos légumes, et disposer la pâte à crumble par dessus.
+
+    8. Enfourner pour 12/15 minutes, puis 3 minutes en position grill.
+
+    Bon appétit !"""
+
+        #----------------------------------------------------------#
+
+        #------------------ Crédits ------------------#
+        self.credits_text = """
+2METHYLBUTAN2OL-SERPENTES
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DEVELOPMENT TEAM
+
+Lead Developers
+• Cassian BELLOT
+• Mathis BOULIER
+• Maxime GALMICHE
+
+Game Design & Programming
+• Cassian BELLOT
+• Mathis BOULIER
+• Maxime GALMICHE
+
+Art Direction & Visual Assets
+• Cassian BELLOT
+• Mathis BOULIER
+• Maxime GALMICHE
+
+Sound Design & Music Composition
+• Cassian BELLOT
+• Mathis BOULIER
+• Maxime GALMICHE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SPECIAL ACKNOWLEDGEMENTS
+
+Educational Institution
+IUT INFORMATIQUE DIJON-AUXERRE
+Université de Bourgogne
+
+Academic Support
+Our dedicated teachers and mentors
+who guided us through this journey
+
+Technical Foundation
+Python Programming Language
+Pygame Framework & Community
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A Game Created with Passion
+Version 1.0
+
+© 2024 All Rights Reserved
+2Methylbutan2ol-Serpentes Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        #----------------------------------------------------------#
+
 
         #------------------ Texte pour les aides ------------------#
         self.dict_elements = {
@@ -250,6 +373,9 @@ class App:
 
             elif self.mode == "credits":
                 self.credits()
+            
+            elif self.mode == "answer":
+                self.answer()
 
             elif self.mode == "exit":
                 self.exit()
@@ -257,6 +383,49 @@ class App:
             pg.display.update()
             pg.display.flip()
             self.clock.tick(60)
+
+    def credits(self):
+        # Split the text into lines
+        credit_lines = self.credits_text.split('\n')
+        scroll_speed = 1
+        
+        # Font settings
+        font = pg.font.Font(None, 36)
+        
+        # Calculate total height of all text
+        line_height = 40
+        total_height = len(credit_lines) * line_height
+        
+        # Starting position (below screen)
+        y_pos = self.screen.get_height()
+        
+        # Create a surface for the entire credits
+        credits_surface = pg.Surface((self.screen.get_width(), total_height))
+        credits_surface.fill((0, 0, 0))  # Black background
+        
+        # Render all lines onto the credits surface
+        for i, line in enumerate(credit_lines):
+            text_surface = font.render(line, True, (255, 255, 255))  # White text
+            text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, i * line_height))
+            credits_surface.blit(text_surface, text_rect)
+        
+        # Scroll position
+        scroll_y = 0
+        
+        while True:
+            self.screen.fill((0, 0, 0))  # Clear self.screen
+            
+            # Draw the visible portion of credits
+            self.screen.blit(credits_surface, (0, y_pos - scroll_y))
+            
+            # Update scroll position
+            scroll_y += scroll_speed
+            
+            # Reset scroll when all text has scrolled
+            if scroll_y > total_height + self.screen.get_height():
+                scroll_y = 0
+            
+            pg.display.flip()
 
 
     def menu(self):
@@ -286,7 +455,7 @@ class App:
             ("Commencer", "game", self.screen_h // 2 - 155, self.GRAY),
             ("Paramètres", "settings", self.screen_h // 2 - 85, self.GRAY),
             ("Crédits", "credits", self.screen_h // 2 - 15, self.GRAY),
-            ("Niveau 3", "niveau_3", self.screen_h // 2 + 55, self.GRAY),
+            ("Réponse", "answer", self.screen_h // 2 + 55, self.GRAY),
             ("Niveau 4", "niveau_4", self.screen_h // 2 + 125, self.GRAY),
             ("Quitter", "exit", self.screen_h // 2 + 195, self.RED)
         ]
@@ -1156,6 +1325,186 @@ class App:
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)   
+
+
+    def answer(self):
+        import math
+        
+        # Initialize angle for circular motion if not exists
+        if not hasattr(self, 'circle_angle'):
+            self.circle_angle = 0
+        
+        # Radius for circular motion (30% of screen width)
+        radius = min(self.screen_w, self.screen_h) * 0.4
+        
+        # Center of the screen
+        center_x = self.screen_w // 2
+        center_y = self.screen_h // 2
+        
+        # Update angle
+        self.circle_angle += 0.02
+        
+        # Calculate positions
+        python_x = center_x + radius * math.cos(self.circle_angle)
+        python_y = center_y + radius * math.sin(self.circle_angle)
+        
+        # Opposite position for images.png
+        images_x = center_x + radius * math.cos(self.circle_angle + math.pi)
+        images_y = center_y + radius * math.sin(self.circle_angle + math.pi)
+
+        self.screen.fill(self.TEAL)
+        
+        if not self.recipe_shown:
+
+            self.text_angle += 2 * self.text_direction
+            self.text_scale = 1.0 + math.sin(pg.time.get_ticks() / 500) * 0.5
+
+            if pg.time.get_ticks() % 60 == 0:
+                self.text_direction = random.choice([-1, 1])
+                self.mirror = random.choice([True, False])
+
+            # Main text
+            text = self.font.render("T'as cru quoi ?", True, self.WHITE)
+            text = pg.transform.scale(text, (int(text.get_width() * self.text_scale), int(text.get_height() * self.text_scale)))
+            if self.mirror:
+                text = pg.transform.flip(text, True, False)
+            text = pg.transform.rotate(text, self.text_angle)
+            self.text_rect = text.get_rect(center=(center_x, center_y))
+            self.screen.blit(text, self.text_rect)
+            
+            # # Python GIF
+            # ret, frame = self.video.read()
+            # if not ret:
+            #     self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            #     ret, frame = self.video.read()
+            
+            # frame = cv2.resize(frame, (100, 100))
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # frame_surface = pg.surfarray.make_surface(frame)
+            # frame_rect = frame_surface.get_rect(center=(python_x, python_y))
+            # self.screen.blit(pg.transform.rotate(frame_surface, -90), frame_rect)
+
+            # Images.png with random rotation
+            try:
+                img = pg.image.load('./img/yaniss.jpg').convert_alpha()  # Added convert_alpha()
+                img = pg.transform.scale(img, (400, 150))
+                img = pg.transform.rotate(img, self.circle_angle * 30)
+                self.img_rect = img.get_rect(center=(python_x, python_y))
+                self.screen.blit(img, self.img_rect)
+            except:
+                print("Image not found")
+            
+            # Images.png with random rotation
+            try:
+                img = pg.image.load('./img/enzo.jpg').convert_alpha()  # Added convert_alpha()
+                img = pg.transform.scale(img, (400, 150))
+                img = pg.transform.rotate(img, self.circle_angle * 30)
+                self.img_rect2 = img.get_rect(center=(images_x, images_y))
+                self.screen.blit(pg.transform.rotate(img, -90), self.img_rect2)
+            except:
+                print("Image not found")
+        
+        else:
+            # Draw recipe
+            self.screen.fill(self.BLACK)
+            
+            # Create recipe surface
+            recipe_font = pg.font.Font(None, 28)
+            recipe_lines = self.recipe_text.split('\n')
+            
+            total_height = len(recipe_lines) * 35
+            recipe_surface = pg.Surface((self.screen_w - 100, total_height))
+            recipe_surface.fill(self.BLACK)
+            
+            y = 0
+            for line in recipe_lines:
+                if line.startswith(('Ingrédients:', 'Préparation:', 'CRUMBLE')):
+                    color = self.YELLOW
+                else:
+                    color = self.WHITE
+                text = recipe_font.render(line, True, color)
+                recipe_surface.blit(text, (10, y))
+                y += 35
+            
+            # Calculate visible portion
+            visible_height = self.screen_h - 100
+            self.recipe_scroll = min(0, max(-(total_height - visible_height), self.recipe_scroll))
+
+            try:
+                crumble_img = pg.image.load('./img/crumble.jpg').convert_alpha()
+                crumble_img = pg.transform.scale(crumble_img, (400, 200))  # Adjust size as needed
+                recipe_surface.blit(crumble_img, (recipe_surface.get_width() - 420, 10))  # Position in top right with 20px padding
+            except:
+                print("Crumble image not found")
+
+
+            crumble_rect = crumble_img.get_rect()
+            crumble_rect.topleft = (recipe_surface.get_width() - 420, 10) # Add the actual position coordinates
+            if crumble_rect.collidepoint(pg.mouse.get_pos()) and self.affiche:
+                if pg.mouse.get_pressed()[0]:
+                    save_path = filedialog.asksaveasfilename(
+                        defaultextension=".png",
+                        filetypes=[("PNG files", "*.png"), ("All files", "*.*")],
+                        title="Save Crumble Image"
+                    )
+                    if save_path:
+                        pg.image.save(crumble_img, save_path)
+
+
+            
+            # Draw visible portion of recipe
+            self.screen.blit(recipe_surface, (50, 50 + self.recipe_scroll))
+
+            # Draw "Je teste" button
+            button_rect = pg.Rect(self.screen_w//2 - 200, self.screen_h - 60, 400, 40)
+            hover = button_rect.collidepoint(pg.mouse.get_pos())
+            pg.draw.rect(self.screen, self.GREEN if not hover else self.DARK_GREEN, button_rect)
+            button_text = self.font.render("Je teste cette recette !" if not self.will_test_recipe else "Recette testée !!!!!!!!!!!!", True, self.BLACK)
+            button_text_rect = button_text.get_rect(center=button_rect.center)
+            self.screen.blit(button_text, button_text_rect)
+            
+            # Handle button click
+            if pg.mouse.get_pressed()[0]:
+                if hover:
+                    self.will_test_recipe = True
+                    self.mode = "menu"
+                    self.recipe_shown = False
+            
+            self.affiche = True
+        
+        for event in self.events:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE and not self.recipe_shown:
+                    self.mode = "menu"
+                elif event.key == pg.K_ESCAPE and self.recipe_shown:
+                    self.recipe_shown = False
+
+            elif event.type == pg.MOUSEBUTTONDOWN and not self.recipe_shown:
+                current_time = pg.time.get_ticks()
+                mouse_pos = pg.mouse.get_pos()
+                
+                # Check yaniss.jpg click
+                if self.img_rect.collidepoint(mouse_pos) and len(self.click_sequence) == 0:
+                    self.click_sequence.append("yaniss")
+                    self.last_click_time = current_time
+                
+                # Check text click
+                elif self.text_rect.collidepoint(mouse_pos) and len(self.click_sequence) == 1:
+                    self.click_sequence.append("text")
+                
+                # Check enzo.jpg click
+                elif self.img_rect2.collidepoint(mouse_pos) and len(self.click_sequence) == 2:
+                    if current_time - self.last_click_time <= 3000:  # 3 seconds
+                        self.recipe_shown = True
+                    self.click_sequence = []
+            
+            # Handle recipe scrolling
+            elif event.type == pg.MOUSEWHEEL and self.recipe_shown:
+                self.recipe_scroll += event.y * 20
+
+
+
+
 
 
     def exit(self):
