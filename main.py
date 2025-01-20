@@ -57,14 +57,9 @@ try:
     install_and_import(('os', True, False),
                         ('sqlite3', True, "sql"),
                         ('cv2', True, False),
-                        ('astroid', True, False),
-                        ('ast', True, False),
-                        ('tokenize', True, False),
-                        ('io', True, False),
-                        ('traceback', True, False),
-                        ('typing', ['Dict', 'List', 'Tuple'], False),
                         ('random', True, False),
                         ('tkinter.filedialog', True, False),
+                        ("numpy", True, 'np')
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -74,14 +69,9 @@ except:
     install_and_import(('os', True, False),
                         ('sqlite3', True, "sql"),
                         ('cv2', True, False),
-                        ('astroid', True, False),
-                        ('ast', True, False),
-                        ('tokenize', True, False),
-                        ('io', True, False),
-                        ('traceback', True, False),
-                        ('typing', ['Dict', 'List', 'Tuple'], False),
                         ('random', True, False),
                         ('tkinter.filedialog', True, False),
+                        ("numpy", True, 'np')
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -112,8 +102,6 @@ class App:
         self.running = True
         self.mode = "menu"
         self.niv = 1
-        self.acutal_time = 0
-        self.time_limit = 1200
         self.shown_popup = False
         self.popup_text_show = False
         self.scroll_y = 0
@@ -210,55 +198,64 @@ class App:
 
         #------------------ Crédits ------------------#
         self.credits_text = """
-2METHYLBUTAN2OL-SERPENTES
+2METHYLBUTAN2OL-SERPENTES (Bases de Python)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-DEVELOPMENT TEAM
+EQUIPE DE DEVELOPPEMENT
 
-Lead Developers
-• Cassian BELLOT
-• Mathis BOULIER
-• Maxime GALMICHE
+Développeurs Principaux
+• Enzo DUCCESCHI (Cassssian)
+• Yaniss DUTHE
 
-Game Design & Programming
-• Cassian BELLOT
-• Mathis BOULIER
-• Maxime GALMICHE
+Design & Programmation
+• Enzo DUCCESCHI (Cassssian)
 
-Art Direction & Visual Assets
-• Cassian BELLOT
-• Mathis BOULIER
-• Maxime GALMICHE
+Idée & Conception
+• Enzo DUCCESCHI (Cassssian)
+• Yaniss DUTHE
 
-Sound Design & Music Composition
-• Cassian BELLOT
-• Mathis BOULIER
-• Maxime GALMICHE
+Sound Design & Composition musicales
+• Enzo DUCCESCHI (Cassssian)
+• Youtube
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-SPECIAL ACKNOWLEDGEMENTS
+REMERCIMENTS SPECIAUX
 
-Educational Institution
-IUT INFORMATIQUE DIJON-AUXERRE
-Université de Bourgogne
+Lycée Charles De Gaulle
+Ingénieur de ITMGR (Cassssian)
 
-Academic Support
-Our dedicated teachers and mentors
-who guided us through this journey
+Administration du Lycée Charles De Gaulle
+Et surtout à M. LEBEL
+sans qui cela n'aurait jamais pu se faire
 
-Technical Foundation
+Logiciels utilisés
 Python Programming Language
 Pygame Framework & Community
+OS Library
+Setuptools
+Requests Library
+Packaging Distribution Library
+Subprocess Library
+Sys Library
+ITMGR Implementation
+Tkinter GUI
+SQLite3 Database
+CV2 Image Processing
+OpenCV Image Processing
+Random Library
+NumPy Library
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-A Game Created with Passion
+Une application créée avec coeur par
+
+Enzo DUCCESCHI (Cassssian) & Yaniss DUTHE
 Version 1.0
 
-© 2024 All Rights Reserved
-2Methylbutan2ol-Serpentes Team
+© 2024 Tout droit réservé.
+Equipe de 2Methylbutan2ol-Serpentes
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -385,9 +382,16 @@ Version 1.0
             self.clock.tick(60)
 
     def credits(self):
+
+        choix_list = ['Funky town low quality + _bassboosted_', 'Cucaracha', 'funky town low quality', 'Firewhole - maxwell, our beloved', 'maxwell']
+
+        choix = random.randint(0, len(choix_list)-1)
+
+        pg.mixer.music.load(f'./music/{choix_list[choix]}.mp3')
+
         # Split the text into lines
         credit_lines = self.credits_text.split('\n')
-        scroll_speed = 1
+        scroll_speed = 2
         
         # Font settings
         font = pg.font.Font(None, 36)
@@ -397,23 +401,62 @@ Version 1.0
         total_height = len(credit_lines) * line_height
         
         # Starting position (below screen)
-        y_pos = self.screen.get_height()
+        y_pos = self.screen.get_height() + 100
         
         # Create a surface for the entire credits
-        credits_surface = pg.Surface((self.screen.get_width(), total_height))
-        credits_surface.fill((0, 0, 0))  # Black background
+        credits_surface = pg.Surface((self.screen.get_width(), total_height), pg.SRCALPHA)
         
-        # Render all lines onto the credits surface
-        for i, line in enumerate(credit_lines):
-            text_surface = font.render(line, True, (255, 255, 255))  # White text
-            text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, i * line_height))
-            credits_surface.blit(text_surface, text_rect)
+        try:
+            frog_img = pg.image.load('./img/frog.png')
+        except:
+            frog_img = None
+            
+            # Add frog next to Cassssian
+            if "Cassssian" in line and frog_img:
+                # Scale frog to match font height
+                frog_height = font.get_height()
+                frog_scaled = pg.transform.scale(frog_img, (frog_height, frog_height))
+                # Position frog after the text
+                frog_pos = (text_rect.right + 10, text_rect.centery - frog_height//2)
+                credits_surface.blit(frog_scaled, frog_pos)
+
+
         
         # Scroll position
         scroll_y = 0
         
-        while True:
-            self.screen.fill((0, 0, 0))  # Clear self.screen
+        boucle = True
+
+        video_credits = cv2.VideoCapture(f"./video/{choix_list[choix]}.mp4")
+        pg.mixer.music.play(-1)
+
+        while boucle:
+            self.events = pg.event.get()
+
+            ret, frame = video_credits.read()
+            if not ret:
+                video_credits.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                ret, frame = video_credits.read()
+
+            frame = cv2.resize(frame, (self.screen_w, self.screen_h))
+
+            center_y, center_x = frame.shape[0]//2, frame.shape[1]//2
+            center_region = frame[center_y-5:center_y+5, center_x-5:center_x+5]
+            avg_color = np.mean(center_region, axis=(0,1))
+            
+            # Create opposite color (255 - color)
+            opposite_color = (255 - avg_color[2], 255 - avg_color[1], 255 - avg_color[0])
+
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_surface = pg.surfarray.make_surface(frame)
+            self.screen.blit(pg.transform.rotate(frame_surface, -90), (0, 0))
+
+            # In the text rendering loop
+            for i, line in enumerate(credit_lines):
+                text_surface = font.render(line, True, opposite_color)
+                text_rect = text_surface.get_rect(center=(self.screen.get_width() // 2, i * line_height))
+                credits_surface.blit(text_surface, text_rect)
             
             # Draw the visible portion of credits
             self.screen.blit(credits_surface, (0, y_pos - scroll_y))
@@ -426,6 +469,14 @@ Version 1.0
                 scroll_y = 0
             
             pg.display.flip()
+
+            for event in self.events:
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        video_credits.release()
+                        pg.mixer.music.stop()
+                        self.mode = "menu"
+                        boucle = False
 
 
     def menu(self):
