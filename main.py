@@ -29,8 +29,6 @@ def clv():
         
         is_latest = version.parse(current_version) >= version.parse(latest_version)
 
-        
-        
         return is_latest
 
 def itmgr_dep():
@@ -49,6 +47,8 @@ def itmgr_dep():
     except:
         subprocess.run(["pip", "install", "itmgr"])
     
+
+itmgr_dep()
 
 itmgr_dep()
 from itmgr import install_and_import
@@ -96,6 +96,9 @@ class App:
         pg.display.set_caption("2-Méthylbutan-2-ol Serpentes")
         self.font = pg.font.Font(None, 36)  # None utilise la police par défaut, 36 est la taille
         self.video = cv2.VideoCapture('./img/python.gif')
+        self.boom_video = None
+        self.boom_pos = None
+        self.boom_size = (100, 100)
         #---------------------------------------------------------------------#
 
         #----------------- Variables pour la gestion du pgm ------------------#
@@ -105,6 +108,7 @@ class App:
         self.shown_popup = False
         self.popup_text_show = False
         self.scroll_y = 0
+        self.music_settings = False
         #---------------------------------------------------------------------#
 
         # ----------------- Couleurs ------------------#
@@ -216,7 +220,7 @@ Idée & Conception
 • Yaniss DUTHE
 
 Sound Design & Composition musicales
-• Enzo DUCCESCHI (Cassssian)
+• Enzo DUCCESCHI (Firewhole)
 • Youtube
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -230,7 +234,7 @@ Administration du Lycée Charles De Gaulle
 Et surtout à M. LEBEL
 sans qui cela n'aurait jamais pu se faire
 
-Logiciels utilisés
+Bibliothèques et logiciels utilisés
 Python Programming Language
 Pygame Framework & Community
 OS Library
@@ -246,6 +250,9 @@ CV2 Image Processing
 OpenCV Image Processing
 Random Library
 NumPy Library
+Visual Studio Code
+Github
+Git
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -289,57 +296,84 @@ Equipe de 2Methylbutan2ol-Serpentes
                  {
                      "Création" : {
                          "text1" : "Donne un nom à un espace mémoire qui pourra par la suite contenir des valeurs.", 
-                         "table" : [["lkajajajaj", "img"],["zibed", '.img/images.png'],["dyfugihjo", "yfvubino"],["kalakaka", "lalakajajaja"]], 
-                         "text2": "\n<bullet>Le nom de la variable est choisi par le programmeur, il doit être unique dans le programme et ne doit contenir ni espace ni accent.</bullet><bullet>En Python, une variable doit obligatoirement être initialisée à l'aide de l'opérateur = lors de sa création (par exemple intialisée à 0 comme ci-dessus)</bullet>."
+                         "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"],["./img/createVariableFR.png", './img/images.png']], 
+                         "text2": "\n<bullet>Le nom de la variable est choisi par le programmeur, il doit être unique dans le programme et ne doit contenir ni espace ni accent. </bullet> <bullet> En Python, une variable doit obligatoirement être initialisée à l'aide de l'opérateur = lors de sa création (par exemple intialisée à 0 comme ci-dessus)</bullet>."
                          }
                 },
                 
                 {
                     "Modification" : {
                         "text1" : "Change la valeur contenue dans l'espace mémoire.",
-                        "table" : [["lkajajajaj", "img"],["zibed", '.img/images.png'],["dyfugihjo", "yfvubino"],["kalakaka", "lalakajajaja"]]
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"], ["./img/mettre_variable.png", './img/images.png'],["Exemple", "Exemple"],["./img/variable_avec_fonction.png", "./img/variable_avec_fonction.png"]]
                     }
                 },
                 
                 {
                     "Utilisation" : {
                         "text1" : "Met à disposition d'une autre instruction la valeur contenue dans l'espace mémoire.",
-                        "table" : [["lkajajajaj", "img"],["zibed", '.img/images.png'],["dyfugihjo", "yfvubino"],["kalakaka", "lalakajajaja"]]
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/utilisation_fonction_variables.png", "yfvubino"]]
                     }
                 },
                 
                 {
                     "Type" : {
                         "text1" : "Une variable peut avoir différents types selon la nature des valeurs qu'elle contient. En Python, on trouve (entre autres) :<dash>des nombres entiers</dash><dash>des nombres décimaux</dash><dash>des chaînes de caractères (texte)</dash><dash>des booléens (Vrai ou Faux)</dash>",
-                        "table" : [["lkajajajaj", "img"],["zibed", '.img/images.png'],["dyfugihjo", "yfvubino"],["kalakaka", "lalakajajaja"]],
-                        "text2" : "\n<bullet>Le séparateur des nombres décimaux est le point (.)</bullet><bullet>Les chaînes de caractères doivent être entourées par des guillemets \"\".<bullet>Les variables de type booléen (qui n'existent pas en Scratch) peuvent prendre uniquement les valeurs True (vrai) ou False (faux)."
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/type_variable.png", "yfvubino"]],
+                        "text2" : "\n<bullet>Le séparateur des nombres décimaux est le point (.) </bullet> <bullet> Les chaînes de caractères doivent être entourées par des guillemets \"\".<bullet>Les variables de type booléen (qui n'existent pas en Scratch) peuvent prendre uniquement les valeurs True (vrai) ou False (faux)."
                     }
                 }
                 ],
 
             "Conditionnelle":
 
-            [{"Utilité" : "Permet d'exécuter des instructions lorsque certaines conditions sont respectées."},
+            [{"Utilité" : {
+                "text1" : "Permet d'exécuter des instructions lorsque certaines conditions sont respectées."}},
+            {"Conditionnelle à une branche" : {
+                "text1" : "Permet d'exécuter des instructions si une condition est vraie.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition.png", "code : if condition:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions.png", "code : ma_var = mesurer_hauteur()if ma_var == 3:coup()sauter()"]],
+                "text2" : "\n<bullet>Attention !!!!! pour tester une égalité on utilise un double égal ==. </bullet> <bullet> Les instructions dans la branche if (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
+            
+            {"Conditionnelle à deux branches" : {
+                "text1" : "Permet d'exécuter des instructions si une condition est vraie et d'autres instructions sinon (si la condition est fausse).",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_2.png", "code : if condition:instructions else:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions_2.png", "code : ma_var = mesurer_hauteur()if ma_var == 3:coup()sauter() else:lakakakaka()"]],
+                "text2" : "\n<bullet>Les instructions dans les branches if et else (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
+            
+            {"À trois branches ou plus" : {
+                "text1" : "Permet d'exécuter des instructions différentes en fonction de différentes conditions.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_3.png", "code : if condition:instructions elif conditions:instructions else:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions_3.png", "code : ma_var = mesurer_hauteur() if ma_var == 3:coup()sauter() elif ma_var == 7: kalakalaklaka() else:lakakakaka()"]],
+                "text2" : "\n<bullet> Il est possible d'ajouter autant de branches elif (contraction de else et if) que l'on souhaite. </bullet> <bullet> La branche else n'est pas obligatoire, une conditionnelle peut n'avoir que des branches if et elif. </bullet> <bullet> Les instructions dans les branches if, elif et else (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
             ],
 
             "Boucle for":
 
-            [{"Utilité" : "Permet de répéter des instructions un certain nombre de fois."}
-            ],
+            [{"Utilité" : {
+                "text1" : "Permet de répéter des instructions un certain nombre de fois."}},
+
+            {"Répétition simple" : {
+                "text1" : "Permet de répéter des instructions un certain nombre de fois donné.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition", "code : for _ in range(nombre) : instructions"], ["Exemples", "Exemples"], ["img_code_repet", "code : for _ in range(4) ma_var = ma_var + 2"]],
+                "text2" : "\n<bullet> nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instruction. </bullet> <bullet> Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}},
+            
+            {"Avec compteur (commence à zéro)" : {
+                "text1" : "Permet de répéter des instructions un certain nombre de fois tout en mettant à jour automatiquement une variable compteur qui est initialisée à zéro.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition_compteur", "code : for compteur in range(nombre) : instructions"], ["Exemples", "Exemples"], ["img_code_repet_compteur", "code : for compteur in range(4) afficher(compteur) ma_var = compteur * 2"]],
+                "text2" : "\n<bullet> Le nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instructions. </bullet> <bullet> La variable compteur est automatiquement initialisée à 0 et automatiquement augmentée de 1 à la fin de chaque tour de boucle (sauf au dernier). </bullet> <bullet> La variable compteur peut être utilisée dans les instructions répétées dans la boucle. </bullet>"}},
+
+            {"Avec compteur (début pas à zéro)" : {
+                "text1" : "Permet de répéter des instructions un certain nombre de fois tout en mettant à jour automatiquement une variable compteur.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition_compteur_pas_zero", "code : for compteur in range(n1,n2) : instructions"], ["Exemples", "Exemples"], ["img_code_repet_compteur_pas_zero", "code : for compteur in range(3,7) afficher(compteur) ma_var = compteur * 2"]],
+                "text2" : "\n <bullet> La variable compteur est automatiquement initialisée à n1 (3 dans l'exemple) et automatiquement augmenté de 1 à la fin de chaque tour de boucle (sauf au dernier). </bullet> <bullet> Attention !!!! Les répétitions s'arrêtent lorsque le compteur atteint n2-1 (6 dans l'exemple: 7-1 ). </bullet>"
+            }}],
 
             "Boucle while":
 
-            [{"Utilité" : "Permet de répéter des instructions tant que certaines conditions sont respectées."},
+            [{"Utilité" : {
+                "text1" : "Permet de répéter des instructions tant que certaines conditions sont respectées."}},
             
-            {"Répétition tant que..." : "Permet de répéter des instructions tant qu'une condition est vraie."},
-            
-            {
-                "Title": {
-                    "text1": "Your text content here",
-                    "table": [["Header1", "Header2"], ["Data1", "Data2"]],
-                    "text2" : "Lakakakakakaka"
-                }
-            }]
+            {"Répétition tant que..." : {
+                "text1" : "Permet de répéter des instructions tant qu'une condition est vraie.",
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_while", "code : while conditions : instructions"], ["Exemples", "Exemples"], ["img_while_code", "code : while etc..."]],
+                "text2" : "\n <bullet> La boucle continue de tourner tant que la condition est vraie et elle s'arrête dès qu'elle devient fausse. </bullet> <bullet> Attention !!!! en Python la boucle tourne tant que la condition est vraie, en Scratch la boucle s'arrête quand la condition est vraie. </bullet> <bullet> Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}}]
         }
         #----------------------------------------------------------#
 
@@ -358,7 +392,7 @@ Equipe de 2Methylbutan2ol-Serpentes
 
     def run(self):
         while self.running:
-            self.events = pg.event.get()
+            self.events = pg.event.get()        
             if self.mode ==  "menu":
                 self.menu()
 
@@ -377,9 +411,108 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif self.mode == "exit":
                 self.exit()
 
+            if pg.mouse.get_pressed()[0]:
+                self.boom_video = cv2.VideoCapture('./img/boom.gif')
+                self.boom_pos = pg.mouse.get_pos()
+
+            if self.boom_video:
+                ret, frame = self.boom_video.read()
+                if ret:
+                    frame = cv2.resize(frame, self.boom_size)
+                    # Convert to RGBA to handle transparency
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+                    
+                    # Create mask for white pixels
+                    white_mask = np.all(frame[:,:,:3] > 250, axis=2)
+                    # Set alpha channel to 0 for white pixels
+                    frame[white_mask, 3] = 0
+                    
+                    frame = frame.transpose((1, 0, 2))
+                    
+                    # Create surface with alpha channel
+                    frame_surface = pg.Surface(self.boom_size, pg.SRCALPHA)
+                    pg.surfarray.pixels_alpha(frame_surface)[:] = frame[:,:,3]
+                    pg.surfarray.pixels3d(frame_surface)[:] = frame[:,:,:3]
+                    
+                    frame_rect = frame_surface.get_rect(center=self.boom_pos)
+                    self.screen.blit(frame_surface, frame_rect)
+                else:
+                    self.boom_video.release()
+                    self.boom_video = None
+
+
+
+
+                
+
             pg.display.update()
             pg.display.flip()
             self.clock.tick(60)
+
+    def settings(self):
+        # Charger la vidéo et la musique une seule fois au début
+        if not hasattr(self, 'settings_video'):
+            self.settings_video = cv2.VideoCapture("./img/bob.mp4")
+            pg.mixer.music.load("./music/Firewhole - maxwell, our beloved.mp3")
+            pg.mixer.music.play(-1)
+            self.music_settings = True
+
+        settings_surface = pg.Surface((self.screen_w, self.screen_h))
+        settings_surface.fill((0, 0, 0))
+        self.screen.blit(settings_surface, (0,0))
+
+        # Lire la frame suivante
+        ret, frame = self.settings_video.read()
+        if not ret:
+            self.settings_video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = self.settings_video.read()
+
+        frame = cv2.resize(frame, (self.screen_w, self.screen_h))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_surface = pg.surfarray.make_surface(frame)
+        self.screen.blit(pg.transform.rotate(pg.transform.flip(frame_surface, False, True), -90), (0, 0))
+
+        # Add volume slider
+        slider_width = 300
+        slider_height = 10
+        slider_x = (self.screen_w - slider_width) // 2
+        slider_y = self.screen_h * 0.8
+        
+        # Draw slider background
+        pg.draw.rect(self.screen, self.GRAY, (slider_x, slider_y, slider_width, slider_height))
+        
+        # Get current volume and calculate position
+        current_volume = pg.mixer.music.get_volume()
+        handle_x = slider_x + (slider_width * current_volume)
+        
+        # Draw slider handle
+        handle_size = 20
+        handle_rect = pg.Rect(handle_x - handle_size//2, slider_y - handle_size//2 + slider_height//2, handle_size, handle_size)
+        pg.draw.rect(self.screen, self.WHITE, handle_rect)
+        
+        # Volume text
+        volume_text = self.font.render(f"Volume: {int(current_volume * 100)}%", True, self.WHITE)
+        text_rect = volume_text.get_rect(center=(self.screen_w//2, slider_y - 30))
+        self.screen.blit(volume_text, text_rect)
+        
+        # Handle volume control
+        if pg.mouse.get_pressed()[0]:
+            mouse_x = pg.mouse.get_pos()[0]
+            if slider_x <= mouse_x <= slider_x + slider_width:
+                new_volume = (mouse_x - slider_x) / slider_width
+                new_volume = max(0, min(1, new_volume))
+                pg.mixer.music.set_volume(new_volume)
+
+        for event in self.events:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    self.music_settings = False
+                    pg.mixer.music.stop()
+                    self.mode = "menu"
+                    self.settings_video.release()
+                    delattr(self, 'settings_video')
+
+
 
     def credits(self):
 
@@ -708,7 +841,6 @@ Equipe de 2Methylbutan2ol-Serpentes
                 elif in_dash:
                     lines.append(('bullet', '-', indent - 25))
                 lines.append(('text', ' '.join(current_line), indent))
-            print(lines)
                 
         return lines
 
