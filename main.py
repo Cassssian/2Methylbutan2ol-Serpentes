@@ -296,7 +296,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                  {
                      "Création" : {
                          "text1" : "Donne un nom à un espace mémoire qui pourra par la suite contenir des valeurs.", 
-                         "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"],["./img/createVariableFR.png", './img/images.png']], 
+                         "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"],["./img/createVariableFR.png", 'code : if len(lakaka) < 20:']], 
                          "text2": "\n<bullet>Le nom de la variable est choisi par le programmeur, il doit être unique dans le programme et ne doit contenir ni espace ni accent. </bullet> <bullet> En Python, une variable doit obligatoirement être initialisée à l'aide de l'opérateur = lors de sa création (par exemple intialisée à 0 comme ci-dessus)</bullet>."
                          }
                 },
@@ -392,6 +392,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         }
         self.cursor_timer = 0
         self.cursor_visible = True
+        self.space_number = [0]
         #----------------------------------------------------------#
         self.run()
 
@@ -754,9 +755,38 @@ Equipe de 2Methylbutan2ol-Serpentes
                         text_rect = text.get_rect(midleft=(x, y + row_heights[row_idx]/2))
                         table_surface.blit(text, text_rect)
                 else:
-                    text = self.font.render(str(cell), True, self.WHITE)
-                    text_rect = text.get_rect(midleft=(x, y + row_heights[row_idx]/2))
-                    table_surface.blit(text, text_rect)
+                    if isinstance(cell, str) and cell.startswith('code :'):
+                        # Extract code from cell
+                        code = cell[6:].strip()  # Remove 'code :' prefix
+                        
+                        # Create syntax highlighted surface
+                        tokens = self.tokenize_line(code)
+                        code_surface = pg.Surface((col_width, row_heights[row_idx] - cell_padding * 2))
+                        code_surface.fill(self.RED)
+                        
+                        x = cell_padding
+                        for token, color in tokens:
+                            text = self.font.render(token, True, self.syntax_colors.get(color, self.WHITE))
+                            code_surface.blit(text, (x, cell_padding))
+                            x += text.get_width()
+                        
+                        # Add click detection
+                        cell_rect = pg.Rect(col_idx * (col_width + cell_padding * 2) + cell_padding,
+                                        current_y + cell_padding,
+                                        col_width,
+                                        row_heights[row_idx] - cell_padding * 2)
+                        
+                        if cell_rect.collidepoint(pg.mouse.get_pos()) and pg.mouse.get_pressed()[0]:
+                            self.code_text.append(code)
+                            self.cursor_pos = [len(self.code_text)-1, len(code)]
+                        
+                        table_surface.blit(code_surface, (col_idx * (col_width + cell_padding * 2) + cell_padding, 
+                                                        current_y + cell_padding))
+
+                    else:
+                        text = self.font.render(str(cell), True, self.WHITE)
+                        text_rect = text.get_rect(midleft=(x, y + row_heights[row_idx]/2))
+                        table_surface.blit(text, text_rect)
             
             # Draw horizontal lines
             pg.draw.line(table_surface, self.WHITE, (0, current_y), (surface_width, current_y), line_thickness)
@@ -997,14 +1027,15 @@ Equipe de 2Methylbutan2ol-Serpentes
         if not self.code_text:
             self.code_text = [""]
         line_height = 25
-        char_width = self.font.size("M")[0]  # Use M as reference character
+        char_width = self.font.size("M")[0]
         visible_lines = editor_surface.get_height() // line_height
         
-        # Calculate cursor x position
+        # Calculate cursor x position based on text width
         current_line = self.code_text[self.cursor_pos[0]]
-        cursor_x = 40 + (self.cursor_pos[1] * char_width)
+        text_before_cursor = current_line[:self.cursor_pos[1]]
+        cursor_x = 40 + self.font.size(text_before_cursor)[0] + self.space_number[self.cursor_pos[0]] * 14
         cursor_y = self.cursor_pos[0] * line_height
-        
+            
         # Handle keyboard events
         for event in events:
             if event.type == pg.KEYDOWN:
@@ -1014,6 +1045,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                     indent = len(current_line) - len(current_line.lstrip())
                     self.code_text.insert(self.cursor_pos[0] + 1, " " * indent)
                     self.cursor_pos = [self.cursor_pos[0] + 1, indent]
+                    self.space_number.insert(self.cursor_pos[0], 0)
                     
                 elif event.key == pg.K_TAB:
                     # Add 4 spaces
@@ -1026,6 +1058,8 @@ Equipe de 2Methylbutan2ol-Serpentes
                     
                 elif event.key == pg.K_BACKSPACE:
                     if self.cursor_pos[1] > 0:
+                        if self.code_text[self.cursor_pos[0]][self.cursor_pos[1]-1] == " ":
+                            self.space_number[self.cursor_pos[0]] -= 1
                         self.code_text[self.cursor_pos[0]] = (
                             self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]-1] +
                             self.code_text[self.cursor_pos[0]][self.cursor_pos[1]:]
@@ -1037,6 +1071,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                             self.code_text.pop(self.cursor_pos[0])
                             self.cursor_pos[0] -= 1
                             self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
+                            self.space_number.pop(self.cursor_pos[0])
 
                 elif event.key == pg.K_SPACE:
                     # Add space
@@ -1047,6 +1082,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                         current_line[self.cursor_pos[1]:]
                     )
                     self.cursor_pos[1] += 1
+                    self.space_number[self.cursor_pos[0]] += 1
 
                 elif event.key == pg.K_LEFT:
                     if self.cursor_pos[1] > 0:
@@ -1067,6 +1103,8 @@ Equipe de 2Methylbutan2ol-Serpentes
                         self.cursor_pos[1] = min(self.cursor_pos[1], len(self.code_text[self.cursor_pos[0]]))
 
                 elif event.key == pg.K_DELETE:
+                    if self.code_text[self.cursor_pos[0]][self.cursor_pos[1]] == " ":
+                        self.space_number[self.cursor_pos[0]] -= 1
                     if self.cursor_pos[1] < len(self.code_text[self.cursor_pos[0]]):
                         self.code_text[self.cursor_pos[0]] = (
                             self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]] +
@@ -1077,6 +1115,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                         self.code_text.pop(self.cursor_pos[0])
                         self.cursor_pos[0] -= 1
                         self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
+                        self.space_number.pop(self.cursor_pos[0])
                     
                     # If cursor at end of line, move first word of next line to cursor
                     if self.cursor_pos[1] == len(self.code_text[self.cursor_pos[0]]):
@@ -1088,7 +1127,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                 elif event.key == pg.K_END:
                     self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]])
 
-                elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!']:
+                elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!', ',', ';']:
                     # Add character
                     current_line = self.code_text[self.cursor_pos[0]]
                     self.code_text[self.cursor_pos[0]] = (
@@ -1129,7 +1168,7 @@ Equipe de 2Methylbutan2ol-Serpentes
             scroll_height = editor_surface.get_height() * (editor_surface.get_height() / total_height)
             scroll_pos = (-self.scroll_offset / total_height) * editor_surface.get_height()
             pg.draw.rect(editor_surface, (100,100,100), 
-                        (editor_surface.get_width()-10, scroll_pos, 10, scroll_height))
+                        (editor_surface.get_width()-10, scroll_pos, 10, scroll_height), border_radius=4)
 
 
     def tokenize_line(self, line):
@@ -1149,8 +1188,8 @@ Equipe de 2Methylbutan2ol-Serpentes
                 tokens.append((word, 'comments'))
             elif word.startswith('+') or word.startswith('-') or word.startswith('*') or word.startswith('/') or word.startswith('%') or word.startswith('=') or word.startswith('<') or word.startswith('>') or word.startswith('!') or word.startswith('&') or word.startswith('|') or word.startswith('^') or word.startswith('~') :
                 tokens.append((word, 'operators'))
-            elif word in fonctions or words[indice-1] == "def" and words[(indice+1) if len(words)>3 else -1] == ':':
-                tokens.append((word, 'functions'))
+            # elif word in fonctions or words[indice-1] == "def" and words[(indice+1) if len(words)>3 else -1] == ':':
+            #     tokens.append((word, 'functions'))
             else:
                 tokens.append((word, 'text'))
                 
@@ -1195,6 +1234,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                         self.scroll_offset = 0
                         self.cursor_timer = 0
                         self.cursor_visible = True
+                        self.space_number = [0]
                     else:
                         self.popup_closing = True
 
