@@ -377,6 +377,22 @@ Equipe de 2Methylbutan2ol-Serpentes
         }
         #----------------------------------------------------------#
 
+        #------------------------- Code ---------------------------#
+        self.code_text = []  # Liste des lignes de code
+        self.scroll_offset = 0
+        self.cursor_pos = [0, 0]  # [ligne, colonne]
+        self.syntax_colors = {
+            'keywords': (86, 156, 214),     # bleu
+            'functions': (220, 220, 170),   # jaune
+            'strings': (206, 145, 120),     # orange 
+            'comments': (87, 166, 74),      # vert
+            'numbers': (181, 206, 168),     # vert clair
+            'background': (30, 30, 30),     # gris foncé
+            'operators': (102, 100, 255),   # bleu bzr
+        }
+        self.cursor_timer = 0
+        self.cursor_visible = True
+        #----------------------------------------------------------#
         self.run()
 
     def table_setup(self, cur, conn):
@@ -680,48 +696,82 @@ Equipe de 2Methylbutan2ol-Serpentes
 
     def render_table(self, table_data, surface_width):
         cell_padding = 10
-        row_height = 60
         col_width = surface_width // len(table_data[0]) - cell_padding * 2
         line_thickness = 2
         
-        table_height = len(table_data) * row_height
+        # First pass: calculate row heights
+        row_heights = []
+        for row in table_data:
+            max_height = 60  # Minimum row height
+            for cell in row:
+                if isinstance(cell, str):
+                    if cell.endswith(('.png', '.jpg', '.jpeg')):
+                        try:
+                            img = pg.image.load(cell)
+                            # Calculate scaled height maintaining aspect ratio
+                            aspect_ratio = img.get_height() / img.get_width()
+                            scaled_height = min(col_width * aspect_ratio, 200)  # Max height of 200px
+                            max_height = max(max_height, scaled_height + cell_padding * 2)
+                        except:
+                            text = self.font.render("Image non trouvée", True, self.RED)
+                            max_height = max(max_height, text.get_height() + cell_padding * 2)
+                    else:
+                        text = self.font.render(str(cell), True, self.WHITE)
+                        max_height = max(max_height, text.get_height() + cell_padding * 2)
+            row_heights.append(max_height)
+        
+        # Calculate total table height
+        table_height = sum(row_heights)
         table_surface = pg.Surface((surface_width, table_height))
         table_surface.fill(self.BLACK)
         
         # Draw cells content
+        current_y = 0
         for row_idx, row in enumerate(table_data):
             for col_idx, cell in enumerate(row):
                 x = col_idx * (col_width + cell_padding * 2) + cell_padding
-                y = row_idx * row_height + cell_padding
+                y = current_y + cell_padding
                 
                 if isinstance(cell, str) and cell.endswith(('.png', '.jpg', '.jpeg')):
                     try:
                         img = pg.image.load(cell)
-                        img = pg.transform.scale(img, (col_width, row_height - cell_padding * 2))
-                        table_surface.blit(img, (x, y))
+                        # Scale image maintaining aspect ratio
+                        aspect_ratio = img.get_height() / img.get_width()
+                        scaled_width = min(col_width, img.get_width())
+                        scaled_height = scaled_width * aspect_ratio
+                        
+                        if scaled_height > row_heights[row_idx] - cell_padding * 2:
+                            scaled_height = row_heights[row_idx] - cell_padding * 2
+                            scaled_width = scaled_height / aspect_ratio
+                        
+                        img = pg.transform.scale(img, (int(scaled_width), int(scaled_height)))
+                        # Center the image in the cell
+                        img_x = x + (col_width - scaled_width) / 2
+                        img_y = y + (row_heights[row_idx] - cell_padding * 2 - scaled_height) / 2
+                        table_surface.blit(img, (img_x, img_y))
                     except:
                         text = self.font.render("Image non trouvée", True, self.RED)
-                        table_surface.blit(text, (x, y))
+                        text_rect = text.get_rect(midleft=(x, y + row_heights[row_idx]/2))
+                        table_surface.blit(text, text_rect)
                 else:
                     text = self.font.render(str(cell), True, self.WHITE)
-                    text_rect = text.get_rect(midleft=(x, y + (row_height - cell_padding * 2) // 2))
+                    text_rect = text.get_rect(midleft=(x, y + row_heights[row_idx]/2))
                     table_surface.blit(text, text_rect)
+            
+            # Draw horizontal lines
+            pg.draw.line(table_surface, self.WHITE, (0, current_y), (surface_width, current_y), line_thickness)
+            current_y += row_heights[row_idx]
         
-        # Draw horizontal lines
-        for row in range(len(table_data) + 1):
-            y = row * row_height
-            pg.draw.line(table_surface, self.WHITE, (0, y), (surface_width, y), line_thickness)
+        # Draw final horizontal line
+        pg.draw.line(table_surface, self.WHITE, (0, table_height - line_thickness), 
+                    (surface_width, table_height - line_thickness), line_thickness)
         
         # Draw vertical lines
         for col in range(len(table_data[0]) + 1):
             x = col * (col_width + cell_padding * 2)
             pg.draw.line(table_surface, self.WHITE, (x, 0), (x, table_height), line_thickness)
         
-        pg.draw.line(table_surface, self.WHITE, (0, table_height - line_thickness), (surface_width, table_height - line_thickness), line_thickness)
-        pg.draw.line(table_surface, self.WHITE, (surface_width - line_thickness, 0), (surface_width - line_thickness, table_height), line_thickness)
-                    
         return table_surface
-
 
     def render_text_multiline(self, text, font, color, max_width):
         lines = []
@@ -866,8 +916,8 @@ Equipe de 2Methylbutan2ol-Serpentes
                                 lines = self.render_text_multiline(value, self.font, self.WHITE, max_width)
                                 total_height += len(lines) * 30 + 20
                             elif key == 'table':
-                                table_rows = len(value)
-                                total_height += table_rows * 60 + 20
+                                table_surface = self.render_table(value, max_width)
+                                total_height += table_surface.get_height()
                     else:
                         lines = self.render_text_multiline(content, self.font, self.WHITE, max_width)
                         total_height += len(lines) * 30 + 20
@@ -923,6 +973,15 @@ Equipe de 2Methylbutan2ol-Serpentes
         
         # Draw scrolled content
         popup_surface.blit(content_surface, (0, 0))
+
+        if total_height > self.screen_h:
+            scrollbar_height = (self.screen_h / total_height) * self.screen_h
+            scrollbar_pos = (-scroll_y / total_height) * self.screen_h            
+            # Draw scrollbar handle with rounded corners
+            pg.draw.rect(popup_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height),
+                        border_radius=4)
+
         
         # Draw fixed header
         header_surface = pg.Surface((LEFT_PANEL_WIDTH, 40))
@@ -931,10 +990,191 @@ Equipe de 2Methylbutan2ol-Serpentes
         header_text_rect = header_text.get_rect(topleft=(10, 12))
         header_surface.blit(header_text, header_text_rect)
         popup_surface.blit(header_surface, (0, 0))
-        
+
         return popup_surface, scroll_y
 
+    def handle_code_editor(self, editor_surface, events):
+        if not self.code_text:
+            self.code_text = [""]
+        line_height = 25
+        char_width = self.font.size("M")[0]  # Use M as reference character
+        visible_lines = editor_surface.get_height() // line_height
+        
+        # Calculate cursor x position
+        current_line = self.code_text[self.cursor_pos[0]]
+        cursor_x = 40 + (self.cursor_pos[1] * char_width)
+        cursor_y = self.cursor_pos[0] * line_height
+        
+        # Handle keyboard events
+        for event in events:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_RETURN:
+                    # Add new line with indentation
+                    current_line = self.code_text[self.cursor_pos[0]]
+                    indent = len(current_line) - len(current_line.lstrip())
+                    self.code_text.insert(self.cursor_pos[0] + 1, " " * indent)
+                    self.cursor_pos = [self.cursor_pos[0] + 1, indent]
+                    
+                elif event.key == pg.K_TAB:
+                    # Add 4 spaces
+                    self.code_text[self.cursor_pos[0]] = (
+                        self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]] + 
+                        "    " +
+                        self.code_text[self.cursor_pos[0]][self.cursor_pos[1]:]
+                    )
+                    self.cursor_pos[1] += 4
+                    
+                elif event.key == pg.K_BACKSPACE:
+                    if self.cursor_pos[1] > 0:
+                        self.code_text[self.cursor_pos[0]] = (
+                            self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]-1] +
+                            self.code_text[self.cursor_pos[0]][self.cursor_pos[1]:]
+                        )
+                        self.cursor_pos[1] -= 1
+                    else:
+                        if self.cursor_pos[0] > 0:
+                            # Delete previous line and move cursor to end of previous line
+                            self.code_text.pop(self.cursor_pos[0])
+                            self.cursor_pos[0] -= 1
+                            self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
 
+                elif event.key == pg.K_SPACE:
+                    # Add space
+                    current_line = self.code_text[self.cursor_pos[0]]
+                    self.code_text[self.cursor_pos[0]] = (
+                        current_line[:self.cursor_pos[1]] +
+                        " " +
+                        current_line[self.cursor_pos[1]:]
+                    )
+                    self.cursor_pos[1] += 1
+
+                elif event.key == pg.K_LEFT:
+                    if self.cursor_pos[1] > 0:
+                        self.cursor_pos[1] -= 1
+                
+                elif event.key == pg.K_RIGHT:
+                    if self.cursor_pos[1] < len(self.code_text[self.cursor_pos[0]]):
+                        self.cursor_pos[1] += 1
+
+                elif event.key == pg.K_UP:
+                    if self.cursor_pos[0] > 0:
+                        self.cursor_pos[0] -= 1
+                        self.cursor_pos[1] = min(self.cursor_pos[1], len(self.code_text[self.cursor_pos[0]]))
+
+                elif event.key == pg.K_DOWN:
+                    if self.cursor_pos[0] < len(self.code_text) - 1:
+                        self.cursor_pos[0] += 1
+                        self.cursor_pos[1] = min(self.cursor_pos[1], len(self.code_text[self.cursor_pos[0]]))
+
+                elif event.key == pg.K_DELETE:
+                    if self.cursor_pos[1] < len(self.code_text[self.cursor_pos[0]]):
+                        self.code_text[self.cursor_pos[0]] = (
+                            self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]] +
+                            self.code_text[self.cursor_pos[0]][self.cursor_pos[1]+1:]
+                        )
+                    # If line is empty, delete it
+                    if self.code_text[self.cursor_pos[0]] == "":
+                        self.code_text.pop(self.cursor_pos[0])
+                        self.cursor_pos[0] -= 1
+                        self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
+                    
+                    # If cursor at end of line, move first word of next line to cursor
+                    if self.cursor_pos[1] == len(self.code_text[self.cursor_pos[0]]):
+                        if self.cursor_pos[0] < len(self.code_text) - 1:
+                            self.code_text[self.cursor_pos[0]] += self.code_text[self.cursor_pos[0] + 1]
+                            self.code_text.pop(self.cursor_pos[0] + 1)
+                            self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
+                
+                elif event.key == pg.K_END:
+                    self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]])
+
+                elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!']:
+                    # Add character
+                    current_line = self.code_text[self.cursor_pos[0]]
+                    self.code_text[self.cursor_pos[0]] = (
+                        current_line[:self.cursor_pos[1]] + 
+                        event.unicode + 
+                        current_line[self.cursor_pos[1]:]
+                    )
+                    self.cursor_pos[1] += 1
+                        
+        # Display line numbers
+        for i in range(len(self.code_text)):
+            line_num = self.font.render(str(i+1), True, (150, 150, 150))
+            editor_surface.blit(line_num, (5, i * line_height))
+            
+        # Syntax highlighting
+        for i, line in enumerate(self.code_text):
+            x = 40  # After line numbers
+            tokens = self.tokenize_line(line)
+            for token, color in tokens:
+                text = self.font.render(token, True, self.syntax_colors.get(color, (255,255,255)))
+                editor_surface.blit(text, (x, i * line_height))
+                x += len(token) * char_width
+                
+        # Cursor display
+        self.cursor_timer += 1
+        if self.cursor_timer >= 30:
+            self.cursor_visible = not self.cursor_visible
+            self.cursor_timer = 0
+            
+        if self.cursor_visible:
+            pg.draw.line(editor_surface, (255,255,255), 
+                    (cursor_x, cursor_y), 
+                    (cursor_x, cursor_y + line_height))
+                    
+        # Scroll handling
+        total_height = len(self.code_text) * line_height
+        if total_height > editor_surface.get_height():
+            scroll_height = editor_surface.get_height() * (editor_surface.get_height() / total_height)
+            scroll_pos = (-self.scroll_offset / total_height) * editor_surface.get_height()
+            pg.draw.rect(editor_surface, (100,100,100), 
+                        (editor_surface.get_width()-10, scroll_pos, 10, scroll_height))
+
+
+    def tokenize_line(self, line):
+        """Analyse lexicale basique pour la coloration syntaxique"""
+        tokens = []
+        keywords = ['def', 'if', 'else', 'for', 'while', 'in', 'return', 'elif']
+        fonctions = ['print', 'input', 'len', 'range', 'abs', 'min', 'max', 'sum', 'sorted', 'reversed']
+        words = line.split(' ')
+        for indice, word in enumerate(words):
+            if word in keywords:
+                tokens.append((word, 'keywords'))
+            elif word.isdigit():
+                tokens.append((word, 'numbers'))
+            elif word.startswith('"') or word.startswith("'"):
+                tokens.append((word, 'strings'))
+            elif word.startswith('#'):
+                tokens.append((word, 'comments'))
+            elif word.startswith('+') or word.startswith('-') or word.startswith('*') or word.startswith('/') or word.startswith('%') or word.startswith('=') or word.startswith('<') or word.startswith('>') or word.startswith('!') or word.startswith('&') or word.startswith('|') or word.startswith('^') or word.startswith('~') :
+                tokens.append((word, 'operators'))
+            elif word in fonctions or words[indice-1] == "def" and words[(indice+1) if len(words)>3 else -1] == ':':
+                tokens.append((word, 'functions'))
+            else:
+                tokens.append((word, 'text'))
+                
+        return tokens
+
+    def wrap_text(self, text, max_width, font):
+        words = text.split(' ')
+        lines = []
+        current_line = []
+        current_width = 0
+        
+        for word in words:
+            word_width = font.size(word + ' ')[0]
+            if current_width + word_width <= max_width:
+                current_line.append(word)
+                current_width += word_width
+            else:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+                current_width = word_width
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        return lines
 
     def niveau_1(self):
         # Constants for layout
@@ -944,22 +1184,17 @@ Equipe de 2Methylbutan2ol-Serpentes
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
 
         mos_pos = pg.mouse.get_pos()
-        
-        # Colors for syntax highlighting (customizable)
-        self.syntax_colors = {
-            'keywords': (86, 156, 214),    # blue
-            'strings': (206, 145, 120),    # orange
-            'comments': (87, 166, 74),     # green
-            'numbers': (181, 206, 168),    # light green
-            'background': (30, 30, 30),    # dark gray
-            'text': (212, 212, 212)        # light gray
-        }
 
         for event in self.events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     if not self.popup_text_show and not self.shown_popup:
                         self.mode = "menu"
+                        self.code_text = [""]
+                        self.cursor_pos = [0, 0]
+                        self.scroll_offset = 0
+                        self.cursor_timer = 0
+                        self.cursor_visible = True
                     else:
                         self.popup_closing = True
 
@@ -974,40 +1209,79 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui...",
-            "2. Utilisez les variables...",
-            "3. Affichez le résultat...",
+            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
+            "2. Utilisez une fonction contenant 2 arguments et un retour.",
             "",
             "Conseils:",
-            "- Pensez à initialiser...",
-            "- N'oubliez pas de..."
+            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oubliez pas de bien vérifier votre code.",
+            "",
+            "Test:",
+            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
+            "10 et 12 qui doit donner ...",
+            "10 et 13 qui doit donner ...",
+            "4 et 5 qui doit donner ...",
+            "2 et 22",
+            "5 et 45",
+            "72 et 1",
+
         ]
+
+        instructions_height = self.screen_h * 0.5  # Height for instructions area
+        buttons_height = self.screen_h * 0.4  # Height reserved for buttons
         
-        for i, line in enumerate(instructions):
+        instructions_surface = pg.Surface((LEFT_PANEL_WIDTH, instructions_height))
+        instructions_surface.fill((40, 40, 40))
+            
+        wrapped_lines = []
+        for instruction in instructions:
+            wrapped_lines.extend(self.wrap_text(instruction, LEFT_PANEL_WIDTH - 40, self.font))
+        
+        total_height = len(wrapped_lines) * 30
+        content_surface = pg.Surface((LEFT_PANEL_WIDTH, total_height))
+        content_surface.fill((40, 40, 40))
+        
+        for i, line in enumerate(wrapped_lines):
             text = self.font.render(line, True, self.WHITE)
-            left_panel.blit(text, (20, 20 + i * 30))
+            content_surface.blit(text, (20, i * 30))
+        
+        for event in self.events:
+            if event.type == pg.MOUSEWHEEL:
+                if instructions_surface.get_rect().collidepoint(pg.mouse.get_pos()):
+                    self.scroll_offset = max(min(0, self.scroll_offset + event.y * 30), 
+                                        -max(0, total_height - instructions_height))
+    
+
 
         # Buttons at bottom of left panel
         buttons = [
-           ("Notions de base", (self.screen_w * 0.02, self.screen_h * 0.5), "Notions essentielles pour débuter"),
-            ("Variable", (self.screen_w * 0.02, self.screen_h * 0.6), "Garder des informations en mémoire"),
-            ("Conditionnelle", (self.screen_w * 0.02, self.screen_h * 0.7), "Exécuter selon certains conditions"),
-            ("Boucle for", (self.screen_w * 0.02, self.screen_h * 0.8), "Répéter un certain nombre de fois"),
-            ("Boucle while", (self.screen_w * 0.02, self.screen_h * 0.9), "Répéter selon une condition")
+           ("Notions de base", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.1), "Notions essentielles pour débuter"),
+            ("Variable", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.3), "Garder des informations en mémoire"),
+            ("Conditionnelle", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.5), "Exécuter selon certains conditions"),
+            ("Boucle for", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.7), "Répéter un certain nombre de fois"),
+            ("Boucle while", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.9), "Répéter selon une condition")
         ]
 
-        for text, pos, alt_text in buttons:
+        buttons_surface = pg.Surface((LEFT_PANEL_WIDTH, buttons_height))
+        buttons_surface.fill((40, 40, 40))
 
-            hover = pos[0] + (LEFT_PANEL_WIDTH - pos[0]*2) > mos_pos[0] > pos[0] and pos[1] + 40 > mos_pos[1] > pos[1]
+        for text, pos, alt_text in buttons:
+            button_width = LEFT_PANEL_WIDTH * 0.9
+            button_height = buttons_height * 0.15
+
+            mouse_pos = pg.mouse.get_pos()
+            relative_mouse_pos = (mouse_pos[0], mouse_pos[1] - instructions_height)
+            
+            hover = (pos[0] <= relative_mouse_pos[0] <= pos[0] + button_width and 
+                pos[1] <= relative_mouse_pos[1] <= pos[1] + button_height)
 
             button_surface = pg.Surface((LEFT_PANEL_WIDTH - pos[0]*2, 40))
             button_surface.fill(self.BLUE if not hover else self.DARK_BLUE)
 
             text_surface = self.font.render(alt_text, True, self.WHITE) if hover else self.font.render(text, True, self.WHITE)
-
             text_rect = text_surface.get_rect(center=((LEFT_PANEL_WIDTH - pos[0]*2)/2, 20))
             button_surface.blit(text_surface, text_rect)
-            left_panel.blit(button_surface, pos)
+            buttons_surface.blit(button_surface, pos)
 
             if hover and pg.mouse.get_pressed()[0] and not self.shown_popup and not self.popup_text_show:
                 self.shown_popup = True
@@ -1021,6 +1295,9 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Code editor area
         editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
         editor_surface.fill(self.syntax_colors['background'])
+        self.handle_code_editor(editor_surface, self.events)
+
+
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -1050,6 +1327,23 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
         right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
         right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        instructions_surface.blit(content_surface, (0, self.scroll_offset))
+
+        if total_height > instructions_height:
+            scrollbar_height = (instructions_height / total_height) * instructions_height
+            scrollbar_pos = (-self.scroll_offset / total_height) * instructions_height
+            
+            # Draw scrollbar handle
+            pg.draw.rect(instructions_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height), border_radius=4)
+
+
+
+        left_panel.blit(instructions_surface, (0, 0))
+
+        left_panel.blit(buttons_surface, (0, instructions_height))
+
 
         # Add panels to main screen
         self.screen.blit(left_panel, (0, 0))
