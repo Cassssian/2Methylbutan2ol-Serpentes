@@ -29,6 +29,7 @@ output_text = ""
 cursor_position = len(code_text)
 cursor_visible = True
 last_cursor_toggle = pygame.time.get_ticks()
+indente_ou_pas = False
 
 # Activer la répétition des touches
 pygame.key.set_repeat(300, 50)
@@ -46,6 +47,9 @@ while running:
                 if cursor_position > 0:
                     code_text = code_text[:cursor_position - 1] + code_text[cursor_position:]
                     cursor_position -= 1
+                INDENT_SIZE = max(0, INDENT_SIZE-1)
+                if INDENT_SIZE == 0:
+                    indente_ou_pas = False
             elif event.key == pygame.K_DELETE:  # Supprime le caractère devant le curseur
                 if cursor_position < len(code_text):
                     code_text = code_text[:cursor_position] + code_text[cursor_position + 1:]
@@ -53,12 +57,20 @@ while running:
                 code_text = code_text[:cursor_position] + " " * INDENT_SIZE + code_text[cursor_position:]
                 cursor_position += INDENT_SIZE
             elif event.key == pygame.K_RETURN:
+                INDENT_SIZE = 0
+                for i in code_text:
+                    if i == ":":
+                        INDENT_SIZE += 3
                 code_text = code_text[:cursor_position] + "\n" + " " * INDENT_SIZE + code_text[cursor_position:]
                 cursor_position += 1 + INDENT_SIZE
             elif event.key == pygame.K_LEFT:
                 cursor_position = max(0, cursor_position - 1)
             elif event.key == pygame.K_RIGHT:
                 cursor_position = min(len(code_text), cursor_position + 1)
+            elif event.key == pygame.K_COLON:
+                indente_ou_pas = True
+                code_text = code_text[:cursor_position] + event.unicode + code_text[cursor_position:]
+                cursor_position += 1
             else:
                 code_text = code_text[:cursor_position] + event.unicode + code_text[cursor_position:]
                 cursor_position += 1

@@ -59,7 +59,8 @@ try:
                         ('cv2', True, False),
                         ('random', True, False),
                         ('tkinter.filedialog', True, False),
-                        ("numpy", True, 'np')
+                        ("numpy", True, 'np'),
+                        ("io", True, False),
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -71,7 +72,8 @@ except:
                         ('cv2', True, False),
                         ('random', True, False),
                         ('tkinter.filedialog', True, False),
-                        ("numpy", True, 'np')
+                        ("numpy", True, 'np'),
+                        ("io", True, False),
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -99,6 +101,7 @@ class App:
         self.boom_video = None
         self.boom_pos = None
         self.boom_size = (100, 100)
+        pg.key.set_repeat(300, 50)
         #---------------------------------------------------------------------#
 
         #----------------- Variables pour la gestion du pgm ------------------#
@@ -380,7 +383,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         #------------------------- Code ---------------------------#
         self.code_text = []  # Liste des lignes de code
         self.scroll_offset = 0
-        self.cursor_pos = [0, 0]  # [ligne, colonne]
         self.syntax_colors = {
             'keywords': (86, 156, 214),     # bleu
             'functions': (220, 220, 170),   # jaune
@@ -393,6 +395,17 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.cursor_timer = 0
         self.cursor_visible = True
         self.space_number = [0]
+        self.show_trace = False
+        self.show_console = True
+        self.output = None
+        self.text_error = False
+        self.code_text = ["print('Hello, World!')",]
+        self.indent = 3
+        self.cursor_pos = [len(self.code_text) - 1, 0]
+        self.selected_text = None
+        self.selection_start = None
+        self.selection_end = None
+        self.internal_clipboard = None
         #----------------------------------------------------------#
         self.run()
 
@@ -776,9 +789,9 @@ Equipe de 2Methylbutan2ol-Serpentes
                                         col_width,
                                         row_heights[row_idx] - cell_padding * 2)
                         
-                        if cell_rect.collidepoint(pg.mouse.get_pos()) and pg.mouse.get_pressed()[0]:
-                            self.code_text.append(code)
-                            self.cursor_pos = [len(self.code_text)-1, len(code)]
+                        # if cell_rect.collidepoint(pg.mouse.get_pos()) and pg.mouse.get_pressed()[0]:
+                        #     self.code_text.append(code)
+                        #     self.cursor_pos = [len(self.code_text)-1, len(code)]
                         
                         table_surface.blit(code_surface, (col_idx * (col_width + cell_padding * 2) + cell_padding, 
                                                         current_y + cell_padding))
@@ -1027,115 +1040,210 @@ Equipe de 2Methylbutan2ol-Serpentes
         if not self.code_text:
             self.code_text = [""]
         line_height = 25
-        char_width = self.font.size("M")[0]
-        visible_lines = editor_surface.get_height() // line_height
         
         # Calculate cursor x position based on text width
-        current_line = self.code_text[self.cursor_pos[0]]
-        text_before_cursor = current_line[:self.cursor_pos[1]]
-        cursor_x = 40 + self.font.size(text_before_cursor)[0] + self.space_number[self.cursor_pos[0]] * 14
-        cursor_y = self.cursor_pos[0] * line_height
+        try:
+            current_line = self.code_text[self.cursor_pos[1]]
+        except:
+            current_line = self.code_text[max(0,self.cursor_pos[1] - 1)]
+        text_before_cursor = current_line[:self.cursor_pos[0]]
+        cursor_x = 40 + self.font.size(text_before_cursor)[0]
+        cursor_y = self.cursor_pos[1] * line_height
             
         # Handle keyboard events
         for event in events:
+
+            # # Relâchement
+            # if event.type == pg.KEYUP:
+            #     if event.key == pg.K_LSHIFT or event.key == pg.K_RSHIFT:
+            #         self.selection_start = None
+            #         self.selection_end = None
+
             if event.type == pg.KEYDOWN:
+
+                # Raccourcis
+                
+                # Gestion de la sélection avec Shift
+                if event.mod & pg.KMOD_SHIFT:
+                    if event.key == pg.K_LEFT:
+                        if self.selection_start is None:
+                            self.selection_start = self.cursor_pos[0]
+                        self.cursor_pos[0] = max(0, self.cursor_pos[0] - 1)
+                        self.selection_end = self.cursor_pos[0]
+                        
+                    elif event.key == pg.K_RIGHT:
+                        if self.selection_start is None:
+                            self.selection_start = self.cursor_pos[0]
+                        self.cursor_pos[0] = min(len(self.code_text[self.cursor_pos[1]]), self.cursor_pos[0] + 1)
+                        self.selection_end = self.cursor_pos[0]
+                        
+                    elif event.key == pg.K_HOME:
+                        if self.selection_start is None:
+                            self.selection_start = self.cursor_pos[0]
+                        self.cursor_pos[0] = 0
+                        self.selection_end = self.cursor_pos[0]
+                        
+                    elif event.key == pg.K_END:
+                        if self.selection_start is None:
+                            self.selection_start = self.cursor_pos[0]
+                        self.cursor_pos[0] = len(self.code_text[self.cursor_pos[1]])
+                        self.selection_end = self.cursor_pos[0]
+
+                # Ctrl+A pour tout sélectionner
+                elif event.mod & pg.KMOD_CTRL and event.key == pg.K_a:
+                    self.selection_start = 0
+                    self.selection_end = len(self.code_text[self.cursor_pos[1]])
+                    self.cursor_pos[0] = self.selection_end
+
+                # Ctrl+C pour copier
+                elif event.mod & pg.KMOD_CTRL and event.key == pg.K_c:
+                    if self.selection_start is not None and self.selection_end is not None:
+                        start = min(self.selection_start, self.selection_end)
+                        end = max(self.selection_start, self.selection_end)
+                        selected_text = self.code_text[self.cursor_pos[1]][start:end]
+                        self.internal_clipboard = selected_text
+
+                # Ctrl+V pour coller
+                elif event.mod & pg.KMOD_CTRL and event.key == pg.K_v:
+                    if self.internal_clipboard is not None:
+                        if self.selection_start is not None:
+                            start = min(self.selection_start, self.selection_end)
+                            end = max(self.selection_start, self.selection_end)
+                            self.code_text[self.cursor_pos[1]] = (
+                                self.code_text[self.cursor_pos[1]][:start] +
+                                self.internal_clipboard +
+                                self.code_text[self.cursor_pos[1]][end:]
+                            )
+                            self.cursor_pos[0] = start + len(self.internal_clipboard)
+                        else:
+                            self.code_text[self.cursor_pos[1]] = (
+                                self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] +
+                                self.internal_clipboard +
+                                self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
+                            )
+                            self.cursor_pos[0] += len(self.internal_clipboard)
+                        self.selection_start = None
+                        self.selection_end = None                
+                
                 if event.key == pg.K_RETURN:
                     # Add new line with indentation
-                    current_line = self.code_text[self.cursor_pos[0]]
-                    indent = len(current_line) - len(current_line.lstrip())
-                    self.code_text.insert(self.cursor_pos[0] + 1, " " * indent)
-                    self.cursor_pos = [self.cursor_pos[0] + 1, indent]
-                    self.space_number.insert(self.cursor_pos[0], 0)
+                    self.indent = 0
+                    for i in self.code_text:
+                        if i == ":":
+                            self.indent += 3
+                    self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent)
+                    self.cursor_pos[0] = self.indent
+                    self.cursor_pos[1] += 1
                     
                 elif event.key == pg.K_TAB:
-                    # Add 4 spaces
-                    self.code_text[self.cursor_pos[0]] = (
-                        self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]] + 
-                        "    " +
-                        self.code_text[self.cursor_pos[0]][self.cursor_pos[1]:]
-                    )
-                    self.cursor_pos[1] += 4
+                    self.code_text = self.code_text[:self.cursor_pos[0]] + " " * self.indent + self.code_text[self.cursor_pos[0]:]
+                    self.cursor_pos[0] += self.indent
                     
                 elif event.key == pg.K_BACKSPACE:
-                    if self.cursor_pos[1] > 0:
-                        if self.code_text[self.cursor_pos[0]][self.cursor_pos[1]-1] == " ":
-                            self.space_number[self.cursor_pos[0]] -= 1
-                        self.code_text[self.cursor_pos[0]] = (
-                            self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]-1] +
-                            self.code_text[self.cursor_pos[0]][self.cursor_pos[1]:]
+                    if self.selection_start is not None and self.selection_end is not None:
+                        start = min(self.selection_start, self.selection_end)
+                        end = max(self.selection_start, self.selection_end)
+                        self.code_text[self.cursor_pos[1]] = (
+                            self.code_text[self.cursor_pos[1]][:start] +
+                            self.code_text[self.cursor_pos[1]][end:]
                         )
-                        self.cursor_pos[1] -= 1
-                    else:
+                        self.cursor_pos[0] = start
+                        self.selection_start = None
+                        self.selection_end = None
+                    
+                    else : 
                         if self.cursor_pos[0] > 0:
-                            # Delete previous line and move cursor to end of previous line
-                            self.code_text.pop(self.cursor_pos[0])
-                            self.cursor_pos[0] -= 1
-                            self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
-                            self.space_number.pop(self.cursor_pos[0])
-
-                elif event.key == pg.K_SPACE:
-                    # Add space
-                    current_line = self.code_text[self.cursor_pos[0]]
-                    self.code_text[self.cursor_pos[0]] = (
-                        current_line[:self.cursor_pos[1]] +
-                        " " +
-                        current_line[self.cursor_pos[1]:]
-                    )
-                    self.cursor_pos[1] += 1
-                    self.space_number[self.cursor_pos[0]] += 1
+                            self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0] - 1] + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
+                            self.cursor_pos[0] = max(0, self.cursor_pos[0] - 1)
+                        else:
+                            if self.code_text[self.cursor_pos[1]] == "":
+                                # Delete previous line and move cursor to end of previous line
+                                self.code_text.pop(self.cursor_pos[1])
+                                self.cursor_pos[0] = len(self.code_text[-1])
+                                self.cursor_pos[1] = max(0, self.cursor_pos[1] - 1)
+                
+                # elif event.key == pg.K_SPACE:
+                #     # Add space
+                #     current_line = self.code_text[self.cursor_pos[0]]
+                #     self.code_text[self.cursor_pos[0]] = (
+                #         current_line[:self.cursor_pos[1]] +
+                #         " " +
+                #         current_line[self.cursor_pos[1]:]
+                #     )
+                #     self.cursor_pos[1] += 1
+                #     self.space_number[self.cursor_pos[0]] += 1
 
                 elif event.key == pg.K_LEFT:
-                    if self.cursor_pos[1] > 0:
-                        self.cursor_pos[1] -= 1
-                
+                    if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
+                        self.selection_start = None
+                        self.selection_end = None
+
+                        if self.cursor_pos[0] == 0 and self.cursor_pos[1] > 1:
+                            self.cursor_pos = [len(current_line) - 1, max(0, self.cursor_pos[1] - 1)]
+                        else:
+                            self.cursor_pos[0] = max(0, self.cursor_pos[0] - 1)
+                    
                 elif event.key == pg.K_RIGHT:
-                    if self.cursor_pos[1] < len(self.code_text[self.cursor_pos[0]]):
-                        self.cursor_pos[1] += 1
+                    if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
+                        self.selection_start = None
+                        self.selection_end = None
+
+                        if self.cursor_pos[0] < len(self.code_text[self.cursor_pos[1]]):
+                            self.cursor_pos[0] += 1
+                        else:
+                            self.cursor_pos = [0, min(len(self.code_text), self.cursor_pos[1] + 1)]
 
                 elif event.key == pg.K_UP:
-                    if self.cursor_pos[0] > 0:
-                        self.cursor_pos[0] -= 1
-                        self.cursor_pos[1] = min(self.cursor_pos[1], len(self.code_text[self.cursor_pos[0]]))
+                    if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
+                        self.selection_start = None
+                        self.selection_end = None
+
+                        if self.cursor_pos[1] > 0:
+                            self.cursor_pos[1] = max(self.cursor_pos[1] - 1, 0)
 
                 elif event.key == pg.K_DOWN:
-                    if self.cursor_pos[0] < len(self.code_text) - 1:
-                        self.cursor_pos[0] += 1
-                        self.cursor_pos[1] = min(self.cursor_pos[1], len(self.code_text[self.cursor_pos[0]]))
+                    if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
+                        self.selection_start = None
+                        self.selection_end = None
+
+                        if self.cursor_pos[1] < len(self.code_text) - 1:
+                            self.cursor_pos[1] = min(self.cursor_pos[1] + 1, len(self.code_text[self.cursor_pos[1]]))
 
                 elif event.key == pg.K_DELETE:
-                    if self.code_text[self.cursor_pos[0]][self.cursor_pos[1]] == " ":
-                        self.space_number[self.cursor_pos[0]] -= 1
-                    if self.cursor_pos[1] < len(self.code_text[self.cursor_pos[0]]):
-                        self.code_text[self.cursor_pos[0]] = (
-                            self.code_text[self.cursor_pos[0]][:self.cursor_pos[1]] +
-                            self.code_text[self.cursor_pos[0]][self.cursor_pos[1]+1:]
+                    if self.selection_start is not None and self.selection_end is not None:
+                        start = min(self.selection_start, self.selection_end)
+                        end = max(self.selection_start, self.selection_end)
+                        self.code_text[self.cursor_pos[1]] = (
+                            self.code_text[self.cursor_pos[1]][:start] +
+                            self.code_text[self.cursor_pos[1]][end:]
                         )
-                    # If line is empty, delete it
-                    if self.code_text[self.cursor_pos[0]] == "":
-                        self.code_text.pop(self.cursor_pos[0])
-                        self.cursor_pos[0] -= 1
-                        self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
-                        self.space_number.pop(self.cursor_pos[0])
+                        self.cursor_pos[0] = start
+                        self.selection_start = None
+                        self.selection_end = None
                     
-                    # If cursor at end of line, move first word of next line to cursor
-                    if self.cursor_pos[1] == len(self.code_text[self.cursor_pos[0]]):
-                        if self.cursor_pos[0] < len(self.code_text) - 1:
-                            self.code_text[self.cursor_pos[0]] += self.code_text[self.cursor_pos[0] + 1]
-                            self.code_text.pop(self.cursor_pos[0] + 1)
-                            self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]]) - 1
+                    else:
+                        if self.cursor_pos[0] < len(self.code_text[self.cursor_pos[1]]):
+                            self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] + self.code_text[self.cursor_pos[1]][self.cursor_pos[0] + 1:]
+                            
+                        # If cursor at end of line, move first word of next line to cursor
+                        if self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]):
+                            if self.cursor_pos[1] < len(self.code_text) - 1:
+                                self.code_text[self.cursor_pos[1]] += self.code_text[self.cursor_pos[1] + 1].split(" ")[0]
+                                next_line = self.code_text.pop(self.cursor_pos[1] + 1).split(" ")
+                                next_line.pop(0)
                 
                 elif event.key == pg.K_END:
-                    self.cursor_pos[1] = len(self.code_text[self.cursor_pos[0]])
+                    self.cursor_pos[0] = len(self.code_text[self.cursor_pos[1]])
 
                 elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!', ',', ';']:
                     # Add character
-                    current_line = self.code_text[self.cursor_pos[0]]
-                    self.code_text[self.cursor_pos[0]] = (
-                        current_line[:self.cursor_pos[1]] + 
+                    current_line = self.code_text[self.cursor_pos[1]]
+                    self.code_text[self.cursor_pos[1]] = (
+                        current_line[:self.cursor_pos[0]] + 
                         event.unicode + 
-                        current_line[self.cursor_pos[1]:]
+                        current_line[self.cursor_pos[0]:]
                     )
-                    self.cursor_pos[1] += 1
+                    self.cursor_pos[0] += 1
                         
         # Display line numbers
         for i in range(len(self.code_text)):
@@ -1149,7 +1257,23 @@ Equipe de 2Methylbutan2ol-Serpentes
             for token, color in tokens:
                 text = self.font.render(token, True, self.syntax_colors.get(color, (255,255,255)))
                 editor_surface.blit(text, (x, i * line_height))
-                x += len(token) * char_width
+                x += len(token) * 11
+
+        if self.selection_start is not None and self.selection_end is not None:
+            start_x = 40 + self.font.size(self.code_text[self.cursor_pos[1]][:min(self.selection_start, self.selection_end)])[0]
+            end_x = 40 + self.font.size(self.code_text[self.cursor_pos[1]][:max(self.selection_start, self.selection_end)])[0]
+            selection_rect = pg.Rect(
+                start_x,
+                self.cursor_pos[1] * line_height,
+                end_x - start_x,
+                line_height
+            )
+            selection_surface = pg.Surface((end_x - start_x, line_height))
+            selection_surface.fill((100, 100, 150))
+            selection_surface.set_alpha(128)
+            editor_surface.blit(selection_surface, (start_x, self.cursor_pos[1] * line_height))
+
+
                 
         # Cursor display
         self.cursor_timer += 1
@@ -1175,7 +1299,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         """Analyse lexicale basique pour la coloration syntaxique"""
         tokens = []
         keywords = ['def', 'if', 'else', 'for', 'while', 'in', 'return', 'elif']
-        fonctions = ['print', 'input', 'len', 'range', 'abs', 'min', 'max', 'sum', 'sorted', 'reversed']
+        fonctions = ['print(', 'input(', 'len(', 'range(', 'abs(', 'min(', 'max(', 'sum(', 'sorted(', 'reversed(']
         words = line.split(' ')
         for indice, word in enumerate(words):
             if word in keywords:
@@ -1188,8 +1312,8 @@ Equipe de 2Methylbutan2ol-Serpentes
                 tokens.append((word, 'comments'))
             elif word.startswith('+') or word.startswith('-') or word.startswith('*') or word.startswith('/') or word.startswith('%') or word.startswith('=') or word.startswith('<') or word.startswith('>') or word.startswith('!') or word.startswith('&') or word.startswith('|') or word.startswith('^') or word.startswith('~') :
                 tokens.append((word, 'operators'))
-            # elif word in fonctions or words[indice-1] == "def" and words[(indice+1) if len(words)>3 else -1] == ':':
-            #     tokens.append((word, 'functions'))
+            elif any(word.startswith(fonctions[i]) for i in range(len(fonctions) -1)):
+                tokens.append((word, 'fonctions'))
             else:
                 tokens.append((word, 'text'))
                 
@@ -1215,12 +1339,27 @@ Equipe de 2Methylbutan2ol-Serpentes
             lines.append(' '.join(current_line))
         return lines
 
+    def run_code(self, code):
+        try:
+            old_stdout = sys.stdout
+            sys.stdout = io.StringIO()
+            exec(code, {})
+            output_text = "Bon :" + sys.stdout.getvalue()
+            sys.stdout = old_stdout
+        except Exception as e:
+            output_text = "Erreur :" + str(e)
+        return output_text
+
+
     def niveau_1(self):
         # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
+        button_width = 100
+        button_height = 30
+        button_spacing = 10
 
         mos_pos = pg.mouse.get_pos()
 
@@ -1352,6 +1491,14 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
+        # Trace button
+        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
+        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
+        pg.draw.rect(self.screen, trace_color, trace_button_rect)
+        trace_text = self.font.render("Trace", True, self.WHITE)
+        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
+        self.screen.blit(trace_text, trace_rect)
+
         # Variable trace table
         table_headers = ["Variable", "Type", "Valeur"]
         table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
@@ -1361,12 +1508,86 @@ Equipe de 2Methylbutan2ol-Serpentes
             header_text = self.font.render(header, True, self.WHITE)
             table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
 
+        # Console button
+        console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
+        console_color = self.DARK_BLUE if self.show_console else self.BLUE
+        pg.draw.rect(self.screen, console_color, console_button_rect)
+        console_text = self.font.render("Console", True, self.WHITE)
+        console_rect = console_text.get_rect(center=console_button_rect.center)
+        self.screen.blit(console_text, console_rect)
+
+        # Handle button clicks
+        mouse_pos = pg.mouse.get_pos()
+        adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
+
+        if pg.mouse.get_pressed()[0]:
+            if trace_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = True
+                self.show_console = False
+            elif console_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = False
+                self.show_console = True
+            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+                code = "\n".join(self.code_text)
+                self.output = self.run_code(code)
+
+        # Display trace table or console based on state
+        if self.show_trace:
+            # Variable trace table
+            table_headers = ["Variable", "Type", "Valeur"]
+            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+            table_surface.fill((50, 50, 50))
+            
+            for i, header in enumerate(table_headers):
+                header_text = self.font.render(header, True, self.WHITE)
+                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        elif self.show_console:
+            if not self.output: 
+                # Console output area
+                console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
+                console_surface.blit(console_text, (20, 20))
+            else:
+                if self.output.startswith("Erreur :"):
+                    self.output = self.output.split("Erreur :")[1]
+                    error_text = []
+                    current_width = 0
+                    for i in range(len(self.output)):
+                        word_clean = self.output
+                        word_surface = self.font.render(word_clean + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
+                            error_text.append(word_clean)
+                            current_width += word_width
+                        else:
+                            error_surface = self.font.render(' '.join(error_text), True, self.WHITE, self.RED)
+                            error_text = [word_clean]
+                            current_width = word_width
+                        i += 1
+                        
+                    error_surface = self.font.render(' '.join(error_text), True, self.WHITE, self.RED)
+                    console_surface.blit(error_surface, (10, 10))
+                    self.text_error = True
+                else:
+                    if self.output.startswith("Bon :"):
+                        self.text_error = False
+                        self.output = self.output.split("Bon :")[-1]
+                        output_lines = self.output.split("\n")
+                        for i, line in enumerate(output_lines):
+                            console_surface.blit(self.font.render(line, True, self.WHITE), (10, 10 + i * 20))
+                    else:
+                        output_lines = self.output.split("\n")
+                        for i, line in enumerate(output_lines):
+                            console_surface.blit(self.font.render(line, True, self.WHITE if not self.text_error else self.RED), (10, 10 + i * 20))
+
         # Add components to right panel
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
+        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -1413,8 +1634,6 @@ Equipe de 2Methylbutan2ol-Serpentes
             self.screen.blit(popup_surface, (self.popup_x, 0))
         else:
             self.popup_x = -self.screen_w * 0.4
-
-
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
