@@ -1,6 +1,8 @@
 import pygame
 import sys
 import io
+import keyword
+import re
 
 # Initialisation de pygame
 pygame.init()
@@ -10,9 +12,11 @@ WIDTH, HEIGHT = 800, 600
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
+BLUE = (0, 0, 255)
 FONT = pygame.font.Font(None, 24)
 INDENT_SIZE = 3  
 CURSOR_BLINK_SPEED = 500  
+
 
 # Création de la fenêtre
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -29,11 +33,24 @@ output_text = ""
 cursor_position = len(code_text)
 cursor_visible = True
 last_cursor_toggle = pygame.time.get_ticks()
+code_longueur_avant_echap = 0
 indente_ou_pas = False
+nb_espace = 1
 
 # Activer la répétition des touches
 pygame.key.set_repeat(300, 50)
 
+
+def highlight_keywords(text):
+    tokens = re.split(r'(\W+)', text)  # Sépare les mots tout en conservant la ponctuation
+    highlighted = []
+    for token in tokens:
+        if token in keyword.kwlist:  # Vérifie si le mot est un mot-clé Python
+            highlighted.append((token, BLUE))
+        else:
+            highlighted.append((token, BLACK))
+    return highlighted
+    
 # Boucle principale
 running = True
 while running:
@@ -58,9 +75,20 @@ while running:
                 cursor_position += INDENT_SIZE
             elif event.key == pygame.K_RETURN:
                 INDENT_SIZE = 0
-                for i in code_text:
-                    if i == ":":
-                        INDENT_SIZE += 3
+                nb_espace = 0
+                for i in range(code_longueur_avant_echap,len(code_text)):
+                    if code_text[i] == " ":
+                        nb_espace += 1
+                    else:
+                        break
+                INDENT_SIZE = nb_espace
+                if code_text[-1] == ":":
+                    INDENT_SIZE += 3
+                code_longueur_avant_echap = len(code_text)+1 
+                
+                while INDENT_SIZE % 3 != 0:
+                    INDENT_SIZE -= 1
+
                 code_text = code_text[:cursor_position] + "\n" + " " * INDENT_SIZE + code_text[cursor_position:]
                 cursor_position += 1 + INDENT_SIZE
             elif event.key == pygame.K_LEFT:
@@ -84,6 +112,7 @@ while running:
                     sys.stdout = old_stdout
                 except Exception as e:
                     output_text = str(e)
+        
 
     # Gestion du clignotement du curseur
     current_time = pygame.time.get_ticks()
@@ -100,6 +129,22 @@ while running:
     screen.blit(FONT.render("Zone de Code :", True, BLACK), (50, 30))
     screen.blit(FONT.render("Console :", True, BLACK), (50, 280))
     screen.blit(FONT.render("Exécuter", True, WHITE), (button_rect.x + 20, button_rect.y + 10))
+
+    lines = code_text.split("\n")
+    cursor_x, cursor_y = input_box.x + 5, input_box.y + 5  
+    pos = 0
+    for i, line in enumerate(lines):
+        highlighted_tokens = highlight_keywords(line)
+        x_offset = input_box.x + 5
+        for token, color in highlighted_tokens:
+            token_render = FONT.render(token, True, color)
+            screen.blit(token_render, (x_offset, input_box.y + 5 + i * 20))
+            x_offset += token_render.get_width()
+        
+        if pos <= cursor_position <= pos + len(line):
+            cursor_x = input_box.x + 5 + FONT.size(line[:cursor_position - pos])[0]
+            cursor_y = input_box.y + 5 + i * 20  
+        pos += len(line) + 1  
 
     # Affichage du texte et positionnement du curseur
     lines = code_text.split("\n")
@@ -122,6 +167,7 @@ while running:
         screen.blit(FONT.render(line, True, BLACK), (output_box.x + 5, output_box.y + 5 + i * 20))
 
     pygame.display.flip()
+    
 
 pygame.quit()
 sys.exit()
