@@ -77,7 +77,7 @@ def  decode_image(nom_img, n):
     
     return image_decode.show()
 
-decode_image("Blaise.png",1)
+# decode_image("./img/fusion.png",3)
 
 
 
@@ -85,8 +85,8 @@ decode_image("Blaise.png",1)
 
 def fusion(img1, img2, n):
 
-    img1 = Image.open(img1)
-    img2 = Image.open(img2)
+    img1 = Image.open(img1).convert('RGB')
+    img2 = Image.open(img2).convert('RGB')
 
     largeur = img1.width
     hauteur =  img1.height
@@ -109,3 +109,5 @@ def fusion(img1, img2, n):
     return img_fusion
 
 # "noir noir noir et un blanc" - Galand 
+
+# fusion("./img/crumble.jpg", "./img/Sans titre.png", 3).save("./img/fusion.png")

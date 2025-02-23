@@ -47,10 +47,8 @@ def itmgr_dep():
     except:
         subprocess.run(["pip", "install", "itmgr"])
     
-
 itmgr_dep()
 
-itmgr_dep()
 from itmgr import install_and_import
 
 try:
@@ -61,6 +59,8 @@ try:
                         ('tkinter.filedialog', True, False),
                         ("numpy", True, 'np'),
                         ("io", True, False),
+                        ('math', True, False),
+                        ('re', True, False)
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -74,6 +74,8 @@ except:
                         ('tkinter.filedialog', True, False),
                         ("numpy", True, 'np'),
                         ("io", True, False),
+                        ('math', True, False),
+                        ('re', True, False)
                         )
     os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
     install_and_import(('pygame', True, "pg"),
@@ -385,12 +387,14 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.scroll_offset = 0
         self.syntax_colors = {
             'keywords': (86, 156, 214),     # bleu
-            'functions': (220, 220, 170),   # jaune
+            'fonctions': (220, 220, 170),   # jaune
             'strings': (206, 145, 120),     # orange 
             'comments': (87, 166, 74),      # vert
             'numbers': (181, 206, 168),     # vert clair
             'background': (30, 30, 30),     # gris foncé
             'operators': (102, 100, 255),   # bleu bzr
+            'arg_used': (0, 191, 255),      # bleu clair
+            'arg_unused': (0, 0, 139),      # bleu foncé
         }
         self.cursor_timer = 0
         self.cursor_visible = True
@@ -399,7 +403,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.show_console = True
         self.output = None
         self.text_error = False
-        self.code_text = ["print('Hello, World!')",]
+        self.code_text = ["print('Hello,World!')"]
         self.indent = 3
         self.cursor_pos = [len(self.code_text) - 1, 0]
         self.selected_text = None
@@ -1053,12 +1057,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Handle keyboard events
         for event in events:
 
-            # # Relâchement
-            # if event.type == pg.KEYUP:
-            #     if event.key == pg.K_LSHIFT or event.key == pg.K_RSHIFT:
-            #         self.selection_start = None
-            #         self.selection_end = None
-
             if event.type == pg.KEYDOWN:
 
                 # Raccourcis
@@ -1131,13 +1129,14 @@ Equipe de 2Methylbutan2ol-Serpentes
                     for i in self.code_text:
                         if i == ":":
                             self.indent += 3
-                    self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent)
+                    self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent) if self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]) else self.code_text.insert(self.cursor_pos[1] + 1, self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:])
+                    self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] if not self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]) else self.code_text[self.cursor_pos[1]]
                     self.cursor_pos[0] = self.indent
                     self.cursor_pos[1] += 1
                     
                 elif event.key == pg.K_TAB:
-                    self.code_text = self.code_text[:self.cursor_pos[0]] + " " * self.indent + self.code_text[self.cursor_pos[0]:]
-                    self.cursor_pos[0] += self.indent
+                    self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] + " " * 3 + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
+                    self.cursor_pos[0] += 3
                     
                 elif event.key == pg.K_BACKSPACE:
                     if self.selection_start is not None and self.selection_end is not None:
@@ -1156,22 +1155,18 @@ Equipe de 2Methylbutan2ol-Serpentes
                             self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0] - 1] + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
                             self.cursor_pos[0] = max(0, self.cursor_pos[0] - 1)
                         else:
-                            if self.code_text[self.cursor_pos[1]] == "":
-                                # Delete previous line and move cursor to end of previous line
-                                self.code_text.pop(self.cursor_pos[1])
-                                self.cursor_pos[0] = len(self.code_text[-1])
+                            # if self.code_text[self.cursor_pos[1]] == "" and len(self.code_text) > 2:
+                            #     # Delete previous line and move cursor to end of previous line
+                            #     self.code_text.pop(self.cursor_pos[1])
+                            #     self.cursor_pos[0] = len(self.code_text[-1])
+                            #     self.cursor_pos[1] = max(0, self.cursor_pos[1] - 1)
+                            if self.cursor_pos[0] == 0 and len(self.code_text) > 2:
+                                # Delete previous line and move cursor to end of previous line and move the code to the end of previous line
+                                code = self.code_text.pop(self.cursor_pos[1])
+                                self.code_text[self.cursor_pos[1] - 1] = self.code_text[self.cursor_pos[1] - 1] + code
+                                self.cursor_pos[0] = len(self.code_text[self.cursor_pos[1] - 1])
                                 self.cursor_pos[1] = max(0, self.cursor_pos[1] - 1)
-                
-                # elif event.key == pg.K_SPACE:
-                #     # Add space
-                #     current_line = self.code_text[self.cursor_pos[0]]
-                #     self.code_text[self.cursor_pos[0]] = (
-                #         current_line[:self.cursor_pos[1]] +
-                #         " " +
-                #         current_line[self.cursor_pos[1]:]
-                #     )
-                #     self.cursor_pos[1] += 1
-                #     self.space_number[self.cursor_pos[0]] += 1
+                                
 
                 elif event.key == pg.K_LEFT:
                     if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
@@ -1190,8 +1185,10 @@ Equipe de 2Methylbutan2ol-Serpentes
 
                         if self.cursor_pos[0] < len(self.code_text[self.cursor_pos[1]]):
                             self.cursor_pos[0] += 1
-                        else:
+                        elif len(self.code_text) > 2 and self.cursor_pos[1] < len(self.code_text) - 1:
                             self.cursor_pos = [0, min(len(self.code_text), self.cursor_pos[1] + 1)]
+                        else:
+                            pass
 
                 elif event.key == pg.K_UP:
                     if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
@@ -1250,14 +1247,16 @@ Equipe de 2Methylbutan2ol-Serpentes
             line_num = self.font.render(str(i+1), True, (150, 150, 150))
             editor_surface.blit(line_num, (5, i * line_height))
             
-        # Syntax highlighting
         for i, line in enumerate(self.code_text):
-            x = 40  # After line numbers
+            current_line = ''
             tokens = self.tokenize_line(line)
+            text_width = 0
             for token, color in tokens:
-                text = self.font.render(token, True, self.syntax_colors.get(color, (255,255,255)))
-                editor_surface.blit(text, (x, i * line_height))
-                x += len(token) * 11
+                text = self.font.render(token, True, color)
+                text_width = self.font.size(current_line)[0]
+                editor_surface.blit(text, (40 + text_width, i * line_height))
+                current_line += token
+
 
         if self.selection_start is not None and self.selection_end is not None:
             start_x = 40 + self.font.size(self.code_text[self.cursor_pos[1]][:min(self.selection_start, self.selection_end)])[0]
@@ -1297,27 +1296,79 @@ Equipe de 2Methylbutan2ol-Serpentes
 
     def tokenize_line(self, line):
         """Analyse lexicale basique pour la coloration syntaxique"""
-        tokens = []
-        keywords = ['def', 'if', 'else', 'for', 'while', 'in', 'return', 'elif']
-        fonctions = ['print(', 'input(', 'len(', 'range(', 'abs(', 'min(', 'max(', 'sum(', 'sorted(', 'reversed(']
-        words = line.split(' ')
-        for indice, word in enumerate(words):
-            if word in keywords:
-                tokens.append((word, 'keywords'))
-            elif word.isdigit():
-                tokens.append((word, 'numbers'))
-            elif word.startswith('"') or word.startswith("'"):
-                tokens.append((word, 'strings'))
-            elif word.startswith('#'):
-                tokens.append((word, 'comments'))
-            elif word.startswith('+') or word.startswith('-') or word.startswith('*') or word.startswith('/') or word.startswith('%') or word.startswith('=') or word.startswith('<') or word.startswith('>') or word.startswith('!') or word.startswith('&') or word.startswith('|') or word.startswith('^') or word.startswith('~') :
-                tokens.append((word, 'operators'))
-            elif any(word.startswith(fonctions[i]) for i in range(len(fonctions) -1)):
-                tokens.append((word, 'fonctions'))
-            else:
-                tokens.append((word, 'text'))
-                
-        return tokens
+        # Définition des motifs pour la coloration syntaxique
+        KEYWORDS = [
+            'def', 'for', 'in', 'not', 'if', 'else', 'elif', 'while', 'return', 'import', 'from', 'as', 'class', 'try', 'except', 'finally', 'with', 'and', 'or', 'break', 'continue'
+        ]
+        KEYWORDS_PATTERN = r'\b(' + '|'.join(KEYWORDS) + r')\b'
+
+        STRING_PATTERN = r'(\".*?\"|\'.*?\')'
+
+        FUNCTION_PATTERN = r'\b\w+(?=\()'
+
+        COMMENT_PATTERN = r'#[^\n]*'
+
+        NUMBER_PATTERN = r'\b\d+\.?\d*\b'
+
+        ARG_PATTERN = r'def \w+\((.*?)\):'
+
+        OPERATOR_PATTERN = r'[-+*/=<>!&|^%~]'
+
+        parts = [(line, (255, 255, 255))]  # Texte par défaut en blanc
+
+        # Appliquer les motifs de coloration
+        for pattern, color_key in [
+            (STRING_PATTERN, 'strings'),
+            (COMMENT_PATTERN, 'comments'),
+            (KEYWORDS_PATTERN, 'keywords'),
+            (FUNCTION_PATTERN, 'fonctions'),
+            (NUMBER_PATTERN, 'numbers')
+        ]:
+            new_parts = []
+            for text, color in parts:
+                start = 0
+                for match in re.finditer(pattern, text):
+                    new_parts.append((text[start:match.start()], color))
+                    new_parts.append((match.group(), self.syntax_colors[color_key]))
+                    start = match.end()
+                new_parts.append((text[start:], color))
+            parts = new_parts
+
+        # Coloration des opérateurs en ignorant les chaînes
+        new_parts = []
+        for text, color in parts:
+            if color == self.syntax_colors['strings']:
+                new_parts.append((text, color))
+                continue
+            start = 0
+            for match in re.finditer(OPERATOR_PATTERN, text):
+                new_parts.append((text[start:match.start()], color))
+                new_parts.append((match.group(), self.syntax_colors['operators']))
+                start = match.end()
+            new_parts.append((text[start:], color))
+        parts = new_parts
+        
+        # Gestion des arguments des fonctions
+        for func_match in re.finditer(ARG_PATTERN, line):
+            args = func_match.group(1).split(',')
+            arg_names = [arg.strip().split('=')[0] for arg in args if arg.strip()]
+            for arg in arg_names:
+                pattern = rf'\b{arg}\b'
+                color_key = 'arg_unused'
+                if re.search(pattern, line[func_match.end():]):
+                    color_key = 'arg_used'
+                new_parts = []
+                for text, color in parts:
+                    start = 0
+                    for match in re.finditer(pattern, text):
+                        new_parts.append((text[start:match.start()], color))
+                        new_parts.append((match.group(), self.syntax_colors[color_key]))
+                        start = match.end()
+                    new_parts.append((text[start:], color))
+                parts = new_parts
+        
+        return parts
+
 
     def wrap_text(self, text, max_width, font):
         words = text.split(' ')
@@ -1340,15 +1391,8 @@ Equipe de 2Methylbutan2ol-Serpentes
         return lines
 
     def run_code(self, code):
-        try:
-            old_stdout = sys.stdout
-            sys.stdout = io.StringIO()
-            exec(code, {})
-            output_text = "Bon :" + sys.stdout.getvalue()
-            sys.stdout = old_stdout
-        except Exception as e:
-            output_text = "Erreur :" + str(e)
-        return output_text
+        import debogger
+        return debogger.run_student_code(code)
 
 
     def niveau_1(self):
@@ -1359,9 +1403,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
         button_width = 100
         button_height = 30
-        button_spacing = 10
-
-        mos_pos = pg.mouse.get_pos()
 
         for event in self.events:
             if event.type == pg.KEYDOWN:
@@ -1397,12 +1438,15 @@ Equipe de 2Methylbutan2ol-Serpentes
             "",
             "Test:",
             "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
-            "10 et 12 qui doit donner ...",
-            "10 et 13 qui doit donner ...",
-            "4 et 5 qui doit donner ...",
+            "10 et 12 qui doit donner 37.0",
+            "10 et 13 qui doit donner 38.0",
+            "4 et 5 qui doit donner 15.0",
             "2 et 22",
             "5 et 45",
             "72 et 1",
+            "",
+            "Contraintes:",
+            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
 
         ]
 
@@ -1545,42 +1589,65 @@ Equipe de 2Methylbutan2ol-Serpentes
 
         elif self.show_console:
             if not self.output: 
-                # Console output area
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
             else:
+                y_offset = 10
                 if self.output.startswith("Erreur :"):
                     self.output = self.output.split("Erreur :")[1]
-                    error_text = []
+                    words = self.output.split()
+                    current_line = []
                     current_width = 0
-                    for i in range(len(self.output)):
-                        word_clean = self.output
-                        word_surface = self.font.render(word_clean + ' ', True, self.WHITE)
+                    
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
                         word_width = word_surface.get_width()
                         
                         if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
-                            error_text.append(word_clean)
+                            current_line.append(word)
                             current_width += word_width
                         else:
-                            error_surface = self.font.render(' '.join(error_text), True, self.WHITE, self.RED)
-                            error_text = [word_clean]
+                            error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                            console_surface.blit(error_surface, (10, y_offset))
+                            y_offset += 25
+                            current_line = [word]
                             current_width = word_width
-                        i += 1
-                        
-                    error_surface = self.font.render(' '.join(error_text), True, self.WHITE, self.RED)
-                    console_surface.blit(error_surface, (10, 10))
+                    
+                    if current_line:
+                        error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                        console_surface.blit(error_surface, (10, y_offset))
                     self.text_error = True
                 else:
                     if self.output.startswith("Bon :"):
                         self.text_error = False
                         self.output = self.output.split("Bon :")[-1]
-                        output_lines = self.output.split("\n")
-                        for i, line in enumerate(output_lines):
-                            console_surface.blit(self.font.render(line, True, self.WHITE), (10, 10 + i * 20))
-                    else:
-                        output_lines = self.output.split("\n")
-                        for i, line in enumerate(output_lines):
-                            console_surface.blit(self.font.render(line, True, self.WHITE if not self.text_error else self.RED), (10, 10 + i * 20))
+                    output_lines = self.output.split("\n")
+                    for line in output_lines:
+                        words = line.split()
+                        current_line = []
+                        current_width = 0
+                        
+                        for word in words:
+                            word_surface = self.font.render(word + ' ', True, self.WHITE)
+                            word_width = word_surface.get_width()
+                            
+                            if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                                current_line.append(word)
+                                current_width += word_width
+                            else:
+                                console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                                self.WHITE if not self.text_error else self.RED), 
+                                                (10, y_offset))
+                                y_offset += 25
+                                current_line = [word]
+                                current_width = word_width
+                        
+                        if current_line:
+                            console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                            self.WHITE if not self.text_error else self.RED), 
+                                            (10, y_offset))
+                            y_offset += 25
+
 
         # Add components to right panel
         right_panel.blit(editor_surface, (10, 10))
@@ -2062,7 +2129,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)   
 
-
     def answer(self):
         import math
         
@@ -2167,7 +2233,7 @@ Equipe de 2Methylbutan2ol-Serpentes
             self.recipe_scroll = min(0, max(-(total_height - visible_height), self.recipe_scroll))
 
             try:
-                crumble_img = pg.image.load('./img/crumble.jpg').convert_alpha()
+                crumble_img = pg.image.load('./img/fusion.png').convert_alpha()
                 crumble_img = pg.transform.scale(crumble_img, (400, 200))  # Adjust size as needed
                 recipe_surface.blit(crumble_img, (recipe_surface.get_width() - 420, 10))  # Position in top right with 20px padding
             except:
