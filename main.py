@@ -8,6 +8,8 @@
 import subprocess
 import sys
 
+from pyxel import mouse
+
 def util():
     for i in ["pkg_resources", "packaging", "requests"]:
         try:
@@ -403,13 +405,16 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.show_console = True
         self.output = None
         self.text_error = False
-        self.code_text = ["print('Hello,World!')"]
+        self.code_text = ["print('Hello, World!')"]
         self.indent = 3
-        self.cursor_pos = [len(self.code_text) - 1, 0]
+        self.cursor_pos = [len(self.code_text[0]), 0]
         self.selected_text = None
         self.selection_start = None
         self.selection_end = None
         self.internal_clipboard = None
+        self.code_longueur_avant_echap = 0
+        self.console_scroll_y = 0
+        self.code_scroll_y = 0
         #----------------------------------------------------------#
         self.run()
 
@@ -1126,10 +1131,22 @@ Equipe de 2Methylbutan2ol-Serpentes
                 if event.key == pg.K_RETURN:
                     # Add new line with indentation
                     self.indent = 0
-                    for i in self.code_text:
-                        if i == ":":
-                            self.indent += 3
-                    self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent) if self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]) else self.code_text.insert(self.cursor_pos[1] + 1, self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:])
+                    nb_espace = 0
+                    for j in range(self.code_longueur_avant_echap,len(self.code_text)):
+                        for i in range(0,len(self.code_text[j])):
+                            if self.code_text[self.cursor_pos[1]][i] == " ":
+                                nb_espace += 1
+                            else:
+                                break
+                    self.indent = nb_espace
+                    if self.code_text[self.cursor_pos[1]].strip() and self.code_text[self.cursor_pos[1]].strip()[-1] == ":":
+                        self.indent += 3
+                    self.code_longueur_avant_echap = len(self.code_text)
+                    
+                    while self.indent % 3 != 0:
+                        self.indent -= 1
+
+                    self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent) if self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]) else self.code_text.insert(self.cursor_pos[1] + 1, " " * self.indent + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:])
                     self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] if not self.cursor_pos[0] == len(self.code_text[self.cursor_pos[1]]) else self.code_text[self.cursor_pos[1]]
                     self.cursor_pos[0] = self.indent
                     self.cursor_pos[1] += 1
@@ -1137,6 +1154,10 @@ Equipe de 2Methylbutan2ol-Serpentes
                 elif event.key == pg.K_TAB:
                     self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0]] + " " * 3 + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
                     self.cursor_pos[0] += 3
+                
+                elif event.key == pg.K_HOME:
+                    if not (event.mod & pg.KMOD_SHIFT):
+                        self.cursor_pos[0] = 0
                     
                 elif event.key == pg.K_BACKSPACE:
                     if self.selection_start is not None and self.selection_end is not None:
@@ -1155,19 +1176,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                             self.code_text[self.cursor_pos[1]] = self.code_text[self.cursor_pos[1]][:self.cursor_pos[0] - 1] + self.code_text[self.cursor_pos[1]][self.cursor_pos[0]:]
                             self.cursor_pos[0] = max(0, self.cursor_pos[0] - 1)
                         else:
-                            # if self.code_text[self.cursor_pos[1]] == "" and len(self.code_text) > 2:
-                            #     # Delete previous line and move cursor to end of previous line
-                            #     self.code_text.pop(self.cursor_pos[1])
-                            #     self.cursor_pos[0] = len(self.code_text[-1])
-                            #     self.cursor_pos[1] = max(0, self.cursor_pos[1] - 1)
-                            if self.cursor_pos[0] == 0 and len(self.code_text) > 2:
+                            if self.cursor_pos[0] == 0 and len(self.code_text) > 1:
                                 # Delete previous line and move cursor to end of previous line and move the code to the end of previous line
                                 code = self.code_text.pop(self.cursor_pos[1])
                                 self.code_text[self.cursor_pos[1] - 1] = self.code_text[self.cursor_pos[1] - 1] + code
                                 self.cursor_pos[0] = len(self.code_text[self.cursor_pos[1] - 1])
                                 self.cursor_pos[1] = max(0, self.cursor_pos[1] - 1)
                                 
-
                 elif event.key == pg.K_LEFT:
                     if not (event.mod & pg.KMOD_SHIFT):  # If Shift is not pressed
                         self.selection_start = None
@@ -1241,7 +1256,6 @@ Equipe de 2Methylbutan2ol-Serpentes
                         current_line[self.cursor_pos[0]:]
                     )
                     self.cursor_pos[0] += 1
-                        
         # Display line numbers
         for i in range(len(self.code_text)):
             line_num = self.font.render(str(i+1), True, (150, 150, 150))
@@ -1298,8 +1312,8 @@ Equipe de 2Methylbutan2ol-Serpentes
         """Analyse lexicale basique pour la coloration syntaxique"""
         # Définition des motifs pour la coloration syntaxique
         KEYWORDS = [
-            'def', 'for', 'in', 'not', 'if', 'else', 'elif', 'while', 'return', 'import', 'from', 'as', 'class', 'try', 'except', 'finally', 'with', 'and', 'or', 'break', 'continue'
-        ]
+    'False','None','True','and','as','assert','async','await','break','class','continue','def','del','elif','else','except','finally','for','from','global','if','import','in','is','lambda','nonlocal','not','or','pass','raise','return','try','while','with','yield'
+]
         KEYWORDS_PATTERN = r'\b(' + '|'.join(KEYWORDS) + r')\b'
 
         STRING_PATTERN = r'(\".*?\"|\'.*?\')'
@@ -1592,9 +1606,45 @@ Equipe de 2Methylbutan2ol-Serpentes
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
             else:
-                y_offset = 10
-                if self.output.startswith("Erreur :"):
-                    self.output = self.output.split("Erreur :")[1]
+
+                console_x = LEFT_PANEL_WIDTH + 10
+                console_y = EDITOR_HEIGHT
+                console_rect = pg.Rect(console_x, console_y, RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20)
+
+                total_height_console = 0
+
+                temp_y = 10
+                output_lines = self.output.split('\n')
+
+                for line in output_lines:
+                    words = line.split()
+                    current_line = []
+                    current_width = 0
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            temp_y += 25
+                            current_line = [word]
+                            current_width = word_width
+                    temp_y += 25
+                total_height_console = temp_y
+
+                for event in self.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        mouse_pos = pg.mouse.get_pos()
+                        if console_surface.get_rect().collidepoint(mouse_pos):
+                            self.console_scroll_y += event.y * 20
+                            # Limit scrolling
+                            self.console_scroll_y = min(0, max((- total_height_console + CONSOLE_HEIGHT - 40), self.console_scroll_y + event.y * 30))
+
+                y_offset = 10 + self.console_scroll_y
+
+                if self.output.startswith("COULEURROUGEErreur"):
+                    self.output = self.output.split("COULEURROUGE")[1]
                     words = self.output.split()
                     current_line = []
                     current_width = 0
@@ -1647,6 +1697,15 @@ Equipe de 2Methylbutan2ol-Serpentes
                                             self.WHITE if not self.text_error else self.RED), 
                                             (10, y_offset))
                             y_offset += 25
+
+                if total_height_console > CONSOLE_HEIGHT:
+                    scrollbar_height = (CONSOLE_HEIGHT / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    scrollbar_pos = (-self.console_scroll_y / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    pg.draw.rect(console_surface, (100, 100, 100), 
+                                (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
+                                border_radius=4)
+
+                        
 
 
         # Add components to right panel
