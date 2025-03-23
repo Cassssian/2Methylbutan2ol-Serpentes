@@ -105,7 +105,7 @@ class App:
         #----------------- Variables pour la gestion du pgm ------------------#
         self.running = True
         self.mode = "menu"
-        self.niv = "fini"
+        self.niv = 1
         self.shown_popup = False
         self.popup_text_show = False
         self.scroll_y = 0
@@ -395,7 +395,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.cursor_timer = 0
         self.cursor_visible = True
         self.space_number = [0]
-        self.show_trace = False
         self.show_console = True
         self.output = None
         self.text_error = False
@@ -1610,6 +1609,30 @@ Equipe de 2Methylbutan2ol-Serpentes
                     return True
             return False
         
+        if niveau == 2:
+            if len(code) <= 3:
+                output_lines = output.split('\n')[1:-1]
+                result = ["Journée NSI", "Journée NSI", "Journée NSI", "Journée NSI"]
+                if result == output_lines:
+                    return True
+            return False
+        
+        if niveau == 3:
+            if len(code) <= 15:
+                output_lines = output.split('\n')[1:-1]
+                result = ["False", "True", "True"]
+                if result == output_lines:
+                    return True
+            return False
+        
+        if niveau == 4:
+            if len(code) <= 15:
+                output_lines = output.split('\n')[1:-1]
+                result = ["50.625", "33.75", "22.5","15.0","10"]
+                if result == output_lines:
+                    return True
+            return False
+        
     def niveau_1(self):
         # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
@@ -1763,13 +1786,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
 
         if pg.mouse.get_pressed()[0]:
-            if trace_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = True
-                self.show_console = False
-            elif console_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = False
-                self.show_console = True
-            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+            if 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
                 self.verif_result = self.verif(self.code_text, self.output, 1)
@@ -2003,25 +2020,15 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
-            "2. Utilisez une fonction contenant 2 arguments et un retour.",
+            "1. Cet exercice ne demande pas de créer de fonction",
+            "2. Créer un programme permettant d'écrire dans la console 'Journée NSI' 4 fois.",
             "",
             "Conseils:",
-            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- Une boucle devra être utilisée ",
             "- N'oubliez pas de bien vérifier votre code.",
             "",
-            "Test:",
-            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
-            "10 et 12 qui doit donner 37.0",
-            "10 et 13 qui doit donner 38.0",
-            "4 et 5 qui doit donner 15.0",
-            "2 et 22",
-            "5 et 45",
-            "72 et 1",
-            "2 et 7",
-            "",
             "Contraintes:",
-            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
+            "- Vous devez réaliser ce code en moins de 3 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
 
         ]
 
@@ -2122,16 +2129,10 @@ Equipe de 2Methylbutan2ol-Serpentes
         adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
 
         if pg.mouse.get_pressed()[0]:
-            if trace_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = True
-                self.show_console = False
-            elif console_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = False
-                self.show_console = True
-            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+            if 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 1)
+                self.verif_result = self.verif(self.code_text, self.output, 2)
 
         if self.show_console:
             if not self.output: 
@@ -2280,13 +2281,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 2", True, self.WHITE)
+            next_text = self.font.render("Niveau 3", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 2
+                self.niv = 3
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -2362,22 +2363,18 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
-            "2. Utilisez une fonction contenant 2 arguments et un retour.",
+            "1. Écrivez une fonction qui compare un chiffre  à 10, si le chiffre est plus grand ou égal, la fonction retournera True sinon False",
+            "2. Utilisez une fonction contenant 1 argument et un retour.",
             "",
             "Conseils:",
-            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- Pensez à regarder la catégorie avec les outils de comparaison.",
             "- N'oubliez pas de bien vérifier votre code.",
             "",
             "Test:",
             "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
-            "10 et 12 qui doit donner 37.0",
-            "10 et 13 qui doit donner 38.0",
-            "4 et 5 qui doit donner 15.0",
-            "2 et 22",
-            "5 et 45",
-            "72 et 1",
-            "2 et 7",
+            "3",
+            "10",
+            "102",
             "",
             "Contraintes:",
             "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
@@ -2481,16 +2478,10 @@ Equipe de 2Methylbutan2ol-Serpentes
         adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
 
         if pg.mouse.get_pressed()[0]:
-            if trace_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = True
-                self.show_console = False
-            elif console_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = False
-                self.show_console = True
-            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+            if 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 1)
+                self.verif_result = self.verif(self.code_text, self.output, 3)
 
         if self.show_console:
             if not self.output: 
@@ -2639,13 +2630,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 2", True, self.WHITE)
+            next_text = self.font.render("Niveau 4", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 2
+                self.niv = 4
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -2721,22 +2712,22 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
-            "2. Utilisez une fonction contenant 2 arguments et un retour.",
+            "1. Écrivez une fonction qui fait en sorte que tant que un chiffre est inferieur a 5, une variable égal à 10 est multiplié par 1.5 et on ajoute 1 au chiffre.",
+            "2. Utilisez une fonction contenant 1 arguments, 1 variale et un retour.",
             "",
             "Conseils:",
             "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oublie surtout pas d'augmenter le chiffre en cas d'utilisation de boucle while.",
             "- N'oubliez pas de bien vérifier votre code.",
             "",
             "Test:",
             "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
-            "10 et 12 qui doit donner 37.0",
-            "10 et 13 qui doit donner 38.0",
-            "4 et 5 qui doit donner 15.0",
-            "2 et 22",
-            "5 et 45",
-            "72 et 1",
-            "2 et 7",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            ""
             "",
             "Contraintes:",
             "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
@@ -2840,16 +2831,10 @@ Equipe de 2Methylbutan2ol-Serpentes
         adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
 
         if pg.mouse.get_pressed()[0]:
-            if trace_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = True
-                self.show_console = False
-            elif console_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = False
-                self.show_console = True
-            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+            if 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 1)
+                self.verif_result = self.verif(self.code_text, self.output, 4)
 
         if self.show_console:
             if not self.output: 
@@ -2998,13 +2983,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 2", True, self.WHITE)
+            next_text = self.font.render("Niveau 5", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 2
+                self.niv = 5
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -3199,16 +3184,10 @@ Equipe de 2Methylbutan2ol-Serpentes
         adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
 
         if pg.mouse.get_pressed()[0]:
-            if trace_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = True
-                self.show_console = False
-            elif console_button_rect.collidepoint(adjusted_pos):
-                self.show_trace = False
-                self.show_console = True
-            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+            if 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 1)
+                self.verif_result = self.verif(self.code_text, self.output, 5)
 
         if self.show_console:
             if not self.output: 
@@ -3357,13 +3336,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 2", True, self.WHITE)
+            next_text = self.font.render("FINI !", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 2
+                self.niv = "fini"
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
