@@ -1613,101 +1613,6 @@ Equipe de 2Methylbutan2ol-Serpentes
                     return True
             return False
         
-    def hold_input(self, type, question):
-        """
-        Fonction pour demander une entrée utilisateur avec un message sous forme de popup.
-        Gère les types str, int et float.
-        
-        - Si l'entrée n'est pas valide, affiche un message d'erreur et demande à nouveau.
-        - Retourne la valeur dans le bon type.
-
-        Arguments :
-        - type : "str", "int" ou "float"
-        - question : Texte affiché dans la popup
-
-        Retourne :
-        - Une valeur de type str, int ou float
-        """
-        
-        entree_text = ""
-        erreur = False  # Pour afficher un message d'erreur
-
-        while True:
-
-            # Création de la popup
-            popup_width, popup_height = 400, 200
-            popup_surface = pg.Surface((popup_width, popup_height))
-            popup_surface.fill(self.BLUE)
-            popup_rect = popup_surface.get_rect(center=(self.screen_w // 2, self.screen_h // 2))
-
-            # Affichage du texte de la question
-            question_text = self.font.render(question, True, (255, 255, 255))
-            popup_surface.blit(question_text, (20, 20))
-
-            # Zone de saisie
-            input_box = pg.Rect(20, 70, 360, 40)
-            pg.draw.rect(popup_surface, (255, 255, 255), input_box, border_radius=5)
-
-            # Affichage du texte saisi
-            input_text_surface = self.font.render(entree_text, True, (0, 0, 0))
-            popup_surface.blit(input_text_surface, (input_box.x + 10, input_box.y + 10))
-
-            # Affichage du message d'erreur
-            if erreur:
-                error_text = self.font.render("Saisie invalide, réessayez.", True, (255, 50, 50))
-                popup_surface.blit(error_text, (20, 130))
-
-            # Bouton de validation
-            validate_button = pg.Rect(140, 160, 120, 30)
-            pg.draw.rect(popup_surface, (0, 200, 0), validate_button, border_radius=5)
-            validate_text = self.font.render("Valider", True, (255, 255, 255))
-            popup_surface.blit(validate_text, (validate_button.x + 30, validate_button.y + 5))
-
-            # Blit la popup sur l'écran
-            self.screen.blit(popup_surface, popup_rect.topleft)
-            pg.display.flip()
-
-            self.events = pg.event.get()
-
-            # Gestion des événements
-            for event in self.events:
-
-                if event.type == pg.KEYDOWN:
-                    if event.key == pg.K_RETURN:  # Valider avec "Entrée"
-                        if type == "int":
-                            try:
-                                return int(entree_text)
-                            except ValueError:
-                                erreur = True
-                        elif type == "float":
-                            try:
-                                return float(entree_text)
-                            except ValueError:
-                                erreur = True
-                        else:
-                            return f"{entree_text}"  # Retourne en tant que str
-
-                    elif event.key == pg.K_BACKSPACE:
-                        entree_text = entree_text[:-1]  # Supprimer le dernier caractère
-                    else:
-                        entree_text += event.unicode  # Ajouter la touche pressée
-
-                elif event.type == pg.MOUSEBUTTONDOWN:
-                    if validate_button.collidepoint(event.pos):  # Si on clique sur "Valider"
-                        if type == "int":
-                            try:
-                                return int(entree_text)
-                            except ValueError:
-                                erreur = True
-                        elif type == "float":
-                            try:
-                                return float(entree_text)
-                            except ValueError:
-                                erreur = True
-                        else:
-                            return f"{entree_text}"  # Retourne en tant que str
-
-
     def niveau_1(self):
         # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
@@ -1834,7 +1739,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         editor_surface.fill(self.syntax_colors['background'])
         self.handle_code_editor(editor_surface, self.events)
 
-
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -1849,23 +1753,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
-        # Trace button
-        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
-        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
-        pg.draw.rect(self.screen, trace_color, trace_button_rect)
-        trace_text = self.font.render("Trace", True, self.WHITE)
-        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
-        self.screen.blit(trace_text, trace_rect)
-
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
         # Console button
         console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
         console_color = self.DARK_BLUE if self.show_console else self.BLUE
@@ -1886,40 +1773,11 @@ Equipe de 2Methylbutan2ol-Serpentes
                 self.show_trace = False
                 self.show_console = True
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
-                for i, line in enumerate(self.code_text):
-                    match = re.search(r'(\w*)\s*\(\s*input\s*\(\s*"(.*?)"\s*\)\s*\)', line)  # Recherche d'un type (int, float, str) et d'une question
-
-                    if match:
-                        type_detecte = match.group(1)  # int, float, str ou vide
-                        question = match.group(2)  # Contenu de input("...")
-
-                        # Définir le type utilisé dans hold_input
-                        if type_detecte not in ["int", "float"]:  
-                            type_detecte = "str"  # Par défaut, c'est une chaîne de caractères
-
-                        # Appeler hold_input pour récupérer la valeur
-                        result = self.hold_input(type_detecte, question)
-
-                        # Remplacer input(...) par la valeur obtenue
-                        self.code_text[i] = re.sub(r'\w*\s*\(\s*input\s*\(\s*".*?"\s*\)\s*\)', str(result), line)
-
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
                 self.verif_result = self.verif(self.code_text, self.output, 1)
 
-        # Display trace table or console based on state
-        if self.show_trace:
-            # Variable trace table
-            table_headers = ["Variable", "Type", "Valeur"]
-            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-            table_surface.fill((50, 50, 50))
-            
-            for i, header in enumerate(table_headers):
-                header_text = self.font.render(header, True, self.WHITE)
-                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        elif self.show_console:
+        if self.show_console:
             if not self.output: 
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
@@ -2029,8 +1887,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -2116,7 +1973,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
 
     def niveau_2(self):
-            # Constants for layout
+        # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
@@ -2241,7 +2098,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         editor_surface.fill(self.syntax_colors['background'])
         self.handle_code_editor(editor_surface, self.events)
 
-
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -2256,23 +2112,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
-        # Trace button
-        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
-        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
-        pg.draw.rect(self.screen, trace_color, trace_button_rect)
-        trace_text = self.font.render("Trace", True, self.WHITE)
-        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
-        self.screen.blit(trace_text, trace_rect)
-
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
         # Console button
         console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
         console_color = self.DARK_BLUE if self.show_console else self.BLUE
@@ -2295,21 +2134,9 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 2)
+                self.verif_result = self.verif(self.code_text, self.output, 1)
 
-        # Display trace table or console based on state
-        if self.show_trace:
-            # Variable trace table
-            table_headers = ["Variable", "Type", "Valeur"]
-            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-            table_surface.fill((50, 50, 50))
-            
-            for i, header in enumerate(table_headers):
-                header_text = self.font.render(header, True, self.WHITE)
-                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        elif self.show_console:
+        if self.show_console:
             if not self.output: 
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
@@ -2419,8 +2246,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -2457,13 +2283,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 3", True, self.WHITE)
+            next_text = self.font.render("Niveau 2", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 3
+                self.niv = 2
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -2504,9 +2330,9 @@ Equipe de 2Methylbutan2ol-Serpentes
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
-
+    
     def niveau_3(self):
-            # Constants for layout
+        # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
@@ -2631,7 +2457,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         editor_surface.fill(self.syntax_colors['background'])
         self.handle_code_editor(editor_surface, self.events)
 
-
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -2646,23 +2471,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
-        # Trace button
-        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
-        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
-        pg.draw.rect(self.screen, trace_color, trace_button_rect)
-        trace_text = self.font.render("Trace", True, self.WHITE)
-        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
-        self.screen.blit(trace_text, trace_rect)
-
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
         # Console button
         console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
         console_color = self.DARK_BLUE if self.show_console else self.BLUE
@@ -2685,21 +2493,9 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 3)
+                self.verif_result = self.verif(self.code_text, self.output, 1)
 
-        # Display trace table or console based on state
-        if self.show_trace:
-            # Variable trace table
-            table_headers = ["Variable", "Type", "Valeur"]
-            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-            table_surface.fill((50, 50, 50))
-            
-            for i, header in enumerate(table_headers):
-                header_text = self.font.render(header, True, self.WHITE)
-                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        elif self.show_console:
+        if self.show_console:
             if not self.output: 
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
@@ -2809,8 +2605,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -2847,13 +2642,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("Niveau 4", True, self.WHITE)
+            next_text = self.font.render("Niveau 2", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 4
+                self.niv = 2
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -2894,9 +2689,9 @@ Equipe de 2Methylbutan2ol-Serpentes
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
-
+    
     def niveau_4(self):
-            # Constants for layout
+        # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
@@ -3021,7 +2816,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         editor_surface.fill(self.syntax_colors['background'])
         self.handle_code_editor(editor_surface, self.events)
 
-
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -3036,23 +2830,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
-        # Trace button
-        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
-        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
-        pg.draw.rect(self.screen, trace_color, trace_button_rect)
-        trace_text = self.font.render("Trace", True, self.WHITE)
-        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
-        self.screen.blit(trace_text, trace_rect)
-
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
         # Console button
         console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
         console_color = self.DARK_BLUE if self.show_console else self.BLUE
@@ -3075,21 +2852,9 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 4)
+                self.verif_result = self.verif(self.code_text, self.output, 1)
 
-        # Display trace table or console based on state
-        if self.show_trace:
-            # Variable trace table
-            table_headers = ["Variable", "Type", "Valeur"]
-            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-            table_surface.fill((50, 50, 50))
-            
-            for i, header in enumerate(table_headers):
-                header_text = self.font.render(header, True, self.WHITE)
-                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        elif self.show_console:
+        if self.show_console:
             if not self.output: 
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
@@ -3199,8 +2964,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -3237,13 +3001,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("FINI !!", True, self.WHITE)
+            next_text = self.font.render("Niveau 2", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = 5
+                self.niv = 2
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
@@ -3286,7 +3050,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
 
     def niveau_5(self):
-            # Constants for layout
+        # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
@@ -3411,7 +3175,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         editor_surface.fill(self.syntax_colors['background'])
         self.handle_code_editor(editor_surface, self.events)
 
-
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -3426,23 +3189,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
-        # Trace button
-        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
-        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
-        pg.draw.rect(self.screen, trace_color, trace_button_rect)
-        trace_text = self.font.render("Trace", True, self.WHITE)
-        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
-        self.screen.blit(trace_text, trace_rect)
-
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
         # Console button
         console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
         console_color = self.DARK_BLUE if self.show_console else self.BLUE
@@ -3465,21 +3211,9 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
-                self.verif_result = self.verif(self.code_text, self.output, 5)
+                self.verif_result = self.verif(self.code_text, self.output, 1)
 
-        # Display trace table or console based on state
-        if self.show_trace:
-            # Variable trace table
-            table_headers = ["Variable", "Type", "Valeur"]
-            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-            table_surface.fill((50, 50, 50))
-            
-            for i, header in enumerate(table_headers):
-                header_text = self.font.render(header, True, self.WHITE)
-                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        elif self.show_console:
+        if self.show_console:
             if not self.output: 
                 console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
                 console_surface.blit(console_text, (20, 20))
@@ -3589,8 +3323,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console else None
 
         instructions_surface.blit(content_surface, (0, self.scroll_offset))
 
@@ -3627,13 +3360,13 @@ Equipe de 2Methylbutan2ol-Serpentes
                         next_button_rect.inflate(-3, -3), border_radius=10)
             
             # Button text
-            next_text = self.font.render("FINI !!", True, self.WHITE)
+            next_text = self.font.render("Niveau 2", True, self.WHITE)
             next_text_rect = next_text.get_rect(center=next_button_rect.center)
             right_panel.blit(next_text, next_text_rect)
             
             # Handle click with adjusted mouse position
             if hover and pg.mouse.get_pressed()[0]:
-                self.niv = "fini"
+                self.niv = 2
                 self.code_text = [""]
                 self.cursor_pos = [0, 0]
                 self.scroll_offset = 0
