@@ -269,11 +269,8 @@ Version 1.0
 Equipe de 2Methylbutan2ol-Serpentes
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-        #----------------------------------------------------------#
-
-
-        #------------------ Texte pour les aides ------------------#
+"""        
+#------------------ Texte pour les aides ------------------#
         self.dict_elements = {
             "Notions de base": [
 
@@ -300,30 +297,30 @@ Equipe de 2Methylbutan2ol-Serpentes
                  {
                      "Création" : {
                          "text1" : "Donne un nom à un espace mémoire qui pourra par la suite contenir des valeurs.", 
-                         "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"],["./img/createVariableFR.png", 'code : if len(lakaka) < 20:']], 
-                         "text2": "\n<bullet>Le nom de la variable est choisi par le programmeur, il doit être unique dans le programme et ne doit contenir ni espace ni accent. </bullet> <bullet> En Python, une variable doit obligatoirement être initialisée à l'aide de l'opérateur = lors de sa création (par exemple intialisée à 0 comme ci-dessus)</bullet>."
+                         "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"],["./img/createVariableFR.png", './img/1.png']], 
+                         "text2": "\n• Le nom de la variable est choisi par le programmeur, il doit être unique dans le programme et ne doit contenir ni espace ni accent.  \n• En Python, une variable doit obligatoirement être initialisée à l'aide de l'opérateur = lors de sa création (par exemple intialisée à 0 comme ci-dessus)."
                          }
                 },
                 
                 {
                     "Modification" : {
                         "text1" : "Change la valeur contenue dans l'espace mémoire.",
-                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"], ["./img/mettre_variable.png", './img/images.png'],["Exemple", "Exemple"],["./img/variable_avec_fonction.png", "./img/variable_avec_fonction.png"]]
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Exemple", "Exemple"], ["./img/mettre_variable.png", './img/2.png'],["Exemple", "Exemple"],["./img/variable_avec_fonction.png", './img/3.png']]
                     }
                 },
                 
                 {
                     "Utilisation" : {
                         "text1" : "Met à disposition d'une autre instruction la valeur contenue dans l'espace mémoire.",
-                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/utilisation_fonction_variables.png", "yfvubino"]]
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/utilisation_fonction_variables.png", './img/20.png']]
                     }
                 },
                 
                 {
                     "Type" : {
                         "text1" : "Une variable peut avoir différents types selon la nature des valeurs qu'elle contient. En Python, on trouve (entre autres) :<dash>des nombres entiers</dash><dash>des nombres décimaux</dash><dash>des chaînes de caractères (texte)</dash><dash>des booléens (Vrai ou Faux)</dash>",
-                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/type_variable.png", "yfvubino"]],
-                        "text2" : "\n<bullet>Le séparateur des nombres décimaux est le point (.) </bullet> <bullet> Les chaînes de caractères doivent être entourées par des guillemets \"\".<bullet>Les variables de type booléen (qui n'existent pas en Scratch) peuvent prendre uniquement les valeurs True (vrai) ou False (faux)."
+                        "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"],["Exemple", 'Exemple'],["./img/type_variable.png", './img/4.png']],
+                        "text2" : "• Le séparateur des nombres décimaux est le point (.)  \n• Les chaînes de caractères doivent être entourées par des guillemets \"\".\n• Les variables de type booléen (qui n'existent pas en Scratch) peuvent prendre uniquement les valeurs True (vrai) ou False (faux)."
                     }
                 }
                 ],
@@ -334,18 +331,18 @@ Equipe de 2Methylbutan2ol-Serpentes
                 "text1" : "Permet d'exécuter des instructions lorsque certaines conditions sont respectées."}},
             {"Conditionnelle à une branche" : {
                 "text1" : "Permet d'exécuter des instructions si une condition est vraie.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition.png", "code : if condition:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions.png", "code : ma_var = mesurer_hauteur()if ma_var == 3:coup()sauter()"]],
-                "text2" : "\n<bullet>Attention !!!!! pour tester une égalité on utilise un double égal ==. </bullet> <bullet> Les instructions dans la branche if (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition.png", './img/5.png'], ["Exemples", "Exemples"], ["./img/img_big_conditions.png", './img/6.png']],
+                "text2" : "\n• Attention !!!!! pour tester une égalité on utilise un double égal ==.  \n• Les instructions dans la branche if (corps) doivent être décalées à l'aide de la touche tabulation."}},
             
             {"Conditionnelle à deux branches" : {
                 "text1" : "Permet d'exécuter des instructions si une condition est vraie et d'autres instructions sinon (si la condition est fausse).",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_2.png", "code : if condition:instructions else:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions_2.png", "code : ma_var = mesurer_hauteur()if ma_var == 3:coup()sauter() else:lakakakaka()"]],
-                "text2" : "\n<bullet>Les instructions dans les branches if et else (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_2.png", './img/7.png'], ["Exemples", "Exemples"], ["./img/img_big_condition_2.png", './img/8.png']],
+                "text2" : "\n• Les instructions dans les branches if et else (corps) doivent être décalées à l'aide de la touche tabulation."}},
             
             {"À trois branches ou plus" : {
                 "text1" : "Permet d'exécuter des instructions différentes en fonction de différentes conditions.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_3.png", "code : if condition:instructions elif conditions:instructions else:instructions"], ["Exemples", "Exemples"], ["./img/img_big_conditions_3.png", "code : ma_var = mesurer_hauteur() if ma_var == 3:coup()sauter() elif ma_var == 7: kalakalaklaka() else:lakakakaka()"]],
-                "text2" : "\n<bullet> Il est possible d'ajouter autant de branches elif (contraction de else et if) que l'on souhaite. </bullet> <bullet> La branche else n'est pas obligatoire, une conditionnelle peut n'avoir que des branches if et elif. </bullet> <bullet> Les instructions dans les branches if, elif et else (corps) doivent être décalées à l'aide de la touche tabulation.</bullet>"}},
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_condition_3.png", './img/9.png'], ["Exemples", "Exemples"], ["./img/img_big_condition_3.png", './img/10.png']],
+                "text2" : "\n• Il est possible d'ajouter autant de branches elif (contraction de else et if) que l'on souhaite.  \n• La branche else n'est pas obligatoire, une conditionnelle peut n'avoir que des branches if et elif.  \n• Les instructions dans les branches if, elif et else (corps) doivent être décalées à l'aide de la touche tabulation."}},
             ],
 
             "Boucle for":
@@ -355,18 +352,18 @@ Equipe de 2Methylbutan2ol-Serpentes
 
             {"Répétition simple" : {
                 "text1" : "Permet de répéter des instructions un certain nombre de fois donné.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition", "code : for _ in range(nombre) : instructions"], ["Exemples", "Exemples"], ["img_code_repet", "code : for _ in range(4) ma_var = ma_var + 2"]],
-                "text2" : "\n<bullet> nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instruction. </bullet> <bullet> Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}},
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_boucle_1.png", './img/11.png'], ["Exemples", "Exemples"], ["./img/img_big_boucle_1.png",'./img/12.png']],
+                "text2" : "\n• nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instruction.  \n• Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}},
             
             {"Avec compteur (commence à zéro)" : {
                 "text1" : "Permet de répéter des instructions un certain nombre de fois tout en mettant à jour automatiquement une variable compteur qui est initialisée à zéro.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition_compteur", "code : for compteur in range(nombre) : instructions"], ["Exemples", "Exemples"], ["img_code_repet_compteur", "code : for compteur in range(4) afficher(compteur) ma_var = compteur * 2"]],
-                "text2" : "\n<bullet> Le nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instructions. </bullet> <bullet> La variable compteur est automatiquement initialisée à 0 et automatiquement augmentée de 1 à la fin de chaque tour de boucle (sauf au dernier). </bullet> <bullet> La variable compteur peut être utilisée dans les instructions répétées dans la boucle. </bullet>"}},
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_boucle_2.png", './img/13.png'], ["Exemples", "Exemples"], ["./img/img_big_boucle_2.png", './img/14.png']],
+                "text2" : "\n• Le nombre entre parenthèses dans range(nombre) indique le nombre de répétitions des instructions.  \n• La variable compteur est automatiquement initialisée à 0 et automatiquement augmentée de 1 à la fin de chaque tour de boucle (sauf au dernier).  \n• La variable compteur peut être utilisée dans les instructions répétées dans la boucle. "}},
 
             {"Avec compteur (début pas à zéro)" : {
                 "text1" : "Permet de répéter des instructions un certain nombre de fois tout en mettant à jour automatiquement une variable compteur.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_repetition_compteur_pas_zero", "code : for compteur in range(n1,n2) : instructions"], ["Exemples", "Exemples"], ["img_code_repet_compteur_pas_zero", "code : for compteur in range(3,7) afficher(compteur) ma_var = compteur * 2"]],
-                "text2" : "\n <bullet> La variable compteur est automatiquement initialisée à n1 (3 dans l'exemple) et automatiquement augmenté de 1 à la fin de chaque tour de boucle (sauf au dernier). </bullet> <bullet> Attention !!!! Les répétitions s'arrêtent lorsque le compteur atteint n2-1 (6 dans l'exemple: 7-1 ). </bullet>"
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_boucle_3.png", './img/15.png'], ["Exemples", "Exemples"], ["./img/img_big_boucle_3.png", './img/16.png']],
+                "text2" : "\n• La variable compteur est automatiquement initialisée à n1 (3 dans l'exemple) et automatiquement augmenté de 1 à la fin de chaque tour de boucle (sauf au dernier).  \n• Attention !!!! Les répétitions s'arrêtent lorsque le compteur atteint n2-1 (6 dans l'exemple: 7-1 ). "
             }}],
 
             "Boucle while":
@@ -376,8 +373,8 @@ Equipe de 2Methylbutan2ol-Serpentes
             
             {"Répétition tant que..." : {
                 "text1" : "Permet de répéter des instructions tant qu'une condition est vraie.",
-                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["img_while", "code : while conditions : instructions"], ["Exemples", "Exemples"], ["img_while_code", "code : while etc..."]],
-                "text2" : "\n <bullet> La boucle continue de tourner tant que la condition est vraie et elle s'arrête dès qu'elle devient fausse. </bullet> <bullet> Attention !!!! en Python la boucle tourne tant que la condition est vraie, en Scratch la boucle s'arrête quand la condition est vraie. </bullet> <bullet> Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}}]
+                "table" : [["./img/scratchLogo.png", "./img/pythonLogo.png"], ["Modèle", "Modèle"], ["./img/img_while.png", './img/18.png'], ["Exemples", "Exemples"], ["./img/img_whilee.png", './img/19.png']],
+                "text2" : "\n• La boucle continue de tourner tant que la condition est vraie et elle s'arrête dès qu'elle devient fausse.  \n• Attention !!!! en Python la boucle tourne tant que la condition est vraie, en Scratch la boucle s'arrête quand la condition est vraie.  \n• Les instructions répétées dans la boucle (corps) doivent être décalées à l'aide de la touche tabulation."}}]
         }
         #----------------------------------------------------------#
 
