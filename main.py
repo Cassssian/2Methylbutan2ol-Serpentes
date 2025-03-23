@@ -8,8 +8,6 @@
 import subprocess
 import sys
 
-from pyxel import mouse
-
 def util():
     for i in ["pkg_resources", "packaging", "requests"]:
         try:
@@ -86,10 +84,6 @@ except:
 class App:
     def __init__(self):
         #-------------------- Initialisation de l'application --------------------#
-        self.conn = sql.connect("code.db")
-        self.cur = self.conn.cursor()
-
-        self.table_setup(self.cur, self.conn)
 
         pg.init()
 
@@ -111,7 +105,7 @@ class App:
         #----------------- Variables pour la gestion du pgm ------------------#
         self.running = True
         self.mode = "menu"
-        self.niv = 1
+        self.niv = "fini"
         self.shown_popup = False
         self.popup_text_show = False
         self.scroll_y = 0
@@ -257,6 +251,9 @@ CV2 Image Processing
 OpenCV Image Processing
 Random Library
 NumPy Library
+Io Library
+Math Library
+Re (Regular Expression) Library
 Visual Studio Code
 Github
 Git
@@ -405,7 +402,7 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.show_console = True
         self.output = None
         self.text_error = False
-        self.code_text = ["print('Hello, World!')"]
+        self.code_text = ["re = input('Entrez un nombre : ')", "print(re)"]
         self.indent = 3
         self.cursor_pos = [len(self.code_text[0]), 0]
         self.selected_text = None
@@ -415,19 +412,19 @@ Equipe de 2Methylbutan2ol-Serpentes
         self.code_longueur_avant_echap = 0
         self.console_scroll_y = 0
         self.code_scroll_y = 0
+        self.show_art = False
+        self.password_active = False
+        self.password_text = ""
+        self.color_picker_active = False
+        self.selected_syntax_element = None
+        self.main_color_value = 0
+        self.brightness_value = 0.5
+        self.saturation_value = 1.0
+        self.value_value = 1.0
+        self.verif_result = False
+        self.fin = False
         #----------------------------------------------------------#
         self.run()
-
-    def table_setup(self, cur, conn):
-        cur.execute("""CREATE TABLE IF NOT EXISTS CODE
-                         (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                         photo TEXT NOT NULL,
-                         prenom TEXT NOT NULL,
-                         nom TEXT NOT NULL,
-                         telephone TEXT NOT NULL,
-                         emiel TEXT NOT NULL,
-                         voiture TEXT NOT NULL)""")
-        conn.commit()
 
     def run(self):
         while self.running:
@@ -454,7 +451,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                 self.boom_video = cv2.VideoCapture('./img/boom.gif')
                 self.boom_pos = pg.mouse.get_pos()
 
-            if self.boom_video:
+            if self.boom_video and self.show_art:
                 ret, frame = self.boom_video.read()
                 if ret:
                     frame = cv2.resize(frame, self.boom_size)
@@ -479,14 +476,133 @@ Equipe de 2Methylbutan2ol-Serpentes
                     self.boom_video.release()
                     self.boom_video = None
 
-
-
-
-                
-
             pg.display.update()
             pg.display.flip()
             self.clock.tick(60)
+
+    def draw_color_picker(self):
+        if not self.selected_syntax_element:
+            # Draw element selection list
+            elements = list(self.syntax_colors.keys())
+            list_width = 300
+            list_height = len(elements) * 40 + 20
+            list_x = (self.screen_w - list_width) // 2
+            list_y = (self.screen_h - list_height) // 2
+            
+            list_surface = pg.Surface((list_width, list_height))
+            list_surface.fill((40, 40, 40))
+            
+            for i, element in enumerate(elements):
+                button_rect = pg.Rect(10, i * 40 + 10, list_width - 20, 30)
+                color = self.syntax_colors[element]
+                pg.draw.rect(list_surface, color, button_rect)
+                text = self.font.render(element, True, self.WHITE)
+                text_rect = text.get_rect(center=button_rect.center)
+                list_surface.blit(text, text_rect)
+                
+                # Handle click
+                mouse_pos = pg.mouse.get_pos()
+                relative_pos = (mouse_pos[0] - list_x, mouse_pos[1] - list_y)
+                if pg.mouse.get_pressed()[0] and button_rect.collidepoint(relative_pos):
+                    self.selected_syntax_element = element
+            
+            self.screen.blit(list_surface, (list_x, list_y))
+            return
+
+        # Color picker dimensions
+        picker_width = 600
+        picker_height = 400
+        picker_x = (self.screen_w - picker_width) // 2
+        picker_y = (self.screen_h - picker_height) // 2
+        
+        picker_surface = pg.Surface((picker_width, picker_height))
+        picker_surface.fill((40, 40, 40))
+
+        # Main gradient area
+        gradient_width = picker_width - 100
+        gradient_height = picker_height - 100
+        gradient_surface = pg.Surface((gradient_width, gradient_height))
+        
+        # Draw gradient
+        for x in range(gradient_width):
+            for y in range(gradient_height):
+                saturation = x / gradient_width * 100
+                value = (gradient_height - y) / gradient_height * 100
+                color = pg.Color(0)
+                color.hsva = (self.main_color_value * 360, saturation, value, 100)
+                gradient_surface.set_at((x, y), color)
+        
+        picker_surface.blit(gradient_surface, (50, 30))
+
+        # Vertical hue slider with arrow
+        slider_width = 20
+        color_height = picker_height - 60
+        for i in range(color_height):
+            hue = i / color_height
+            color = pg.Color(0)
+            color.hsva = (hue * 360, 100, 100, 100)
+            pg.draw.line(picker_surface, color, (picker_width - 30, i + 30), 
+                        (picker_width - 30 + slider_width, i + 30))
+        
+        # Draw vertical arrow
+        arrow_y = 30 + (self.main_color_value * color_height)
+        arrow_points = [(picker_width - 40, arrow_y),
+                    (picker_width - 35, arrow_y - 5),
+                    (picker_width - 35, arrow_y + 5)]
+        pg.draw.polygon(picker_surface, self.WHITE, arrow_points)
+
+        # Horizontal brightness slider with arrow
+        brightness_height = 20
+        for i in range(gradient_width):
+            brightness = i / gradient_width
+            color = pg.Color(0)
+            color.hsva = (self.main_color_value * 360, 100, brightness * 100, 100)
+            pg.draw.line(picker_surface, color, (50 + i, picker_height - 30),
+                        (50 + i, picker_height - 30 + brightness_height))
+        
+        # Draw horizontal arrow
+        arrow_x = 50 + (self.brightness_value * gradient_width)
+        arrow_points = [(arrow_x, picker_height - 40),
+                    (arrow_x - 5, picker_height - 35),
+                    (arrow_x + 5, picker_height - 35)]
+        pg.draw.polygon(picker_surface, self.WHITE, arrow_points)
+
+        # Draw selection circle in gradient
+        circle_x = int(50 + (self.saturation_value * gradient_width))
+        circle_y = int(30 + ((1 - self.value_value) * gradient_height))
+        pg.draw.circle(picker_surface, self.WHITE, (circle_x, circle_y), 5, 2)
+
+        # Handle mouse interaction
+        mouse_pos = pg.mouse.get_pos()
+        relative_pos = (mouse_pos[0] - picker_x, mouse_pos[1] - picker_y)
+        
+        if pg.mouse.get_pressed()[0]:
+            # Vertical hue slider
+            if (picker_width - 30 <= relative_pos[0] <= picker_width - 10 and 
+                30 <= relative_pos[1] <= picker_height - 30):
+                self.main_color_value = (relative_pos[1] - 30) / color_height
+                
+            # Main gradient area
+            elif (50 <= relative_pos[0] <= 50 + gradient_width and 
+                30 <= relative_pos[1] <= 30 + gradient_height):
+                self.saturation_value = (relative_pos[0] - 50) / gradient_width
+                self.value_value = 1 - ((relative_pos[1] - 30) / gradient_height)
+                
+                # Update color
+                color = pg.Color(0)
+                color.hsva = (self.main_color_value * 360, 
+                            self.saturation_value * 100,
+                            self.value_value * 100, 100)
+                self.syntax_colors[self.selected_syntax_element] = color
+
+        # Draw current color preview and element name
+        current_color = self.syntax_colors[self.selected_syntax_element]
+        pg.draw.rect(picker_surface, current_color, (50, picker_height - 80, 100, 30))
+        element_text = self.font.render(self.selected_syntax_element, True, self.WHITE)
+        picker_surface.blit(element_text, (160, picker_height - 75))
+
+        self.screen.blit(picker_surface, (picker_x, picker_y))
+
 
     def settings(self):
         # Charger la vidéo et la musique une seule fois au début
@@ -516,6 +632,11 @@ Equipe de 2Methylbutan2ol-Serpentes
         slider_height = 10
         slider_x = (self.screen_w - slider_width) // 2
         slider_y = self.screen_h * 0.8
+        art_button_rect = pg.Rect((self.screen_w - 300) // 2, self.screen_h * 0.9, 300, 40)
+        pg.draw.rect(self.screen, self.BLUE if not self.show_art else self.DARK_BLUE, art_button_rect)
+        art_text = self.font.render("Mode Artistique", True, self.WHITE)
+        art_rect = art_text.get_rect(center=art_button_rect.center)
+        self.screen.blit(art_text, art_rect)
         
         # Draw slider background
         pg.draw.rect(self.screen, self.GRAY, (slider_x, slider_y, slider_width, slider_height))
@@ -533,6 +654,13 @@ Equipe de 2Methylbutan2ol-Serpentes
         volume_text = self.font.render(f"Volume: {int(current_volume * 100)}%", True, self.WHITE)
         text_rect = volume_text.get_rect(center=(self.screen_w//2, slider_y - 30))
         self.screen.blit(volume_text, text_rect)
+
+        color_button_rect = pg.Rect((self.screen_w - 350) // 2, self.screen_h * 0.6, 350, 40)
+        pg.draw.rect(self.screen, self.BLUE if not self.color_picker_active else self.DARK_BLUE, 
+                    color_button_rect)
+        color_text = self.font.render("Personnaliser les couleurs", True, self.WHITE)
+        color_rect = color_text.get_rect(center=color_button_rect.center)
+        self.screen.blit(color_text, color_rect)
         
         # Handle volume control
         if pg.mouse.get_pressed()[0]:
@@ -542,16 +670,55 @@ Equipe de 2Methylbutan2ol-Serpentes
                 new_volume = max(0, min(1, new_volume))
                 pg.mixer.music.set_volume(new_volume)
 
+            if color_button_rect.collidepoint(pg.mouse.get_pos()):
+                self.color_picker_active = True
+        
+        if self.color_picker_active:
+            self.draw_color_picker()
+
         for event in self.events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
-                    self.music_settings = False
-                    pg.mixer.music.stop()
-                    self.mode = "menu"
-                    self.settings_video.release()
-                    delattr(self, 'settings_video')
+                    if not self.color_picker_active:
+                        self.music_settings = False
+                        pg.mixer.music.stop()
+                        self.mode = "menu"
+                        self.settings_video.release()
+                        delattr(self, 'settings_video')
+                    else:
+                        self.color_picker_active = False
 
+        if self.password_active:
+            # Draw popup background
+            popup_rect = pg.Rect((self.screen_w - 400) // 2, (self.screen_h - 200) // 2, 400, 200)
+            pg.draw.rect(self.screen, (50, 50, 50), popup_rect)
+            
+            # Draw password input box
+            input_rect = pg.Rect(popup_rect.centerx - 150, popup_rect.centery - 20, 300, 40)
+            pg.draw.rect(self.screen, self.WHITE, input_rect, 2)
+            
+            # Render password text
+            password_surface = self.font.render(self.password_text, True, self.WHITE)
+            self.screen.blit(password_surface, (input_rect.x + 5, input_rect.y + 5))
+            
+            # Handle password input
+            for event in self.events:
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_RETURN:
+                        if self.password_text == "La galouche":
+                            self.show_art = not self.show_art
+                        self.password_active = False
+                        self.password_text = ""
+                    elif event.key == pg.K_BACKSPACE:
+                        self.password_text = self.password_text[:-1]
+                    else:
+                        self.password_text += event.unicode
 
+        # Handle button click
+        mouse_pos = pg.mouse.get_pos()
+        if pg.mouse.get_pressed()[0]:
+            if art_button_rect.collidepoint(mouse_pos) and not self.password_active:
+                self.password_active = True
 
     def credits(self):
 
@@ -716,6 +883,8 @@ Equipe de 2Methylbutan2ol-Serpentes
             self.niveau_4()
         elif self.niv == 5:
             self.niveau_5()
+        elif self.niv == "fini":
+            self.niveau_fini()
 
     def render_table(self, table_data, surface_width):
         cell_padding = 10
@@ -1058,6 +1227,34 @@ Equipe de 2Methylbutan2ol-Serpentes
         text_before_cursor = current_line[:self.cursor_pos[0]]
         cursor_x = 40 + self.font.size(text_before_cursor)[0]
         cursor_y = self.cursor_pos[1] * line_height
+
+        # Handle mouse clicks for cursor positioning
+        mouse_pos = pg.mouse.get_pos()
+        editor_rect = editor_surface.get_rect()
+        if pg.mouse.get_pressed()[0] and editor_rect.collidepoint(mouse_pos):
+            # Convert mouse position to relative editor coordinates
+            click_x = mouse_pos[0] - (self.screen_w * 0.4 + 50)  # Adjust for left panel and margin
+            click_y = mouse_pos[1] - 10  # Adjust for top margin
+            
+            # Calculate line number from y position
+            clicked_line = min(len(self.code_text) - 1, max(0, click_y // 25))
+            
+            # Calculate character position from x position
+            line_content = self.code_text[clicked_line]
+            test_pos = 0
+            
+            # Find position by measuring text width until we exceed click position
+            while test_pos <= len(line_content):
+                if self.font.size(line_content[:test_pos])[0] > click_x:
+                    break
+                test_pos += 1
+            
+            # Update cursor position
+            self.cursor_pos = [test_pos - 1, clicked_line]
+            self.selection_start = None
+            self.selection_end = None
+
+
             
         # Handle keyboard events
         for event in events:
@@ -1247,7 +1444,7 @@ Equipe de 2Methylbutan2ol-Serpentes
                 elif event.key == pg.K_END:
                     self.cursor_pos[0] = len(self.code_text[self.cursor_pos[1]])
 
-                elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!', ',', ';']:
+                elif event.unicode.isalnum() or event.unicode in [' ', '.', '_', '(', ')', '[', ']', '{', '}', ':', '"', "'", '+', '-', '*', '/', '%', '=', '<', '>', '!', '?', ',', ';']:
                     # Add character
                     current_line = self.code_text[self.cursor_pos[1]]
                     self.code_text[self.cursor_pos[1]] = (
@@ -1306,7 +1503,6 @@ Equipe de 2Methylbutan2ol-Serpentes
             scroll_pos = (-self.scroll_offset / total_height) * editor_surface.get_height()
             pg.draw.rect(editor_surface, (100,100,100), 
                         (editor_surface.get_width()-10, scroll_pos, 10, scroll_height), border_radius=4)
-
 
     def tokenize_line(self, line):
         """Analyse lexicale basique pour la coloration syntaxique"""
@@ -1383,7 +1579,6 @@ Equipe de 2Methylbutan2ol-Serpentes
         
         return parts
 
-
     def wrap_text(self, text, max_width, font):
         words = text.split(' ')
         lines = []
@@ -1406,7 +1601,111 @@ Equipe de 2Methylbutan2ol-Serpentes
 
     def run_code(self, code):
         import debogger
+
         return debogger.run_student_code(code)
+
+    def verif(self, code, output, niveau):
+        if niveau == 1:
+            if len(code) < 16:
+                output_lines = output.split('\n')[1:-1]
+                result = ["37.0", "38.0", "15.0", "27.0", "57.5", "181.0", "12.0"]
+                if result == output_lines:
+                    return True
+            return False
+        
+    def hold_input(self, type, question):
+        """
+        Fonction pour demander une entrée utilisateur avec un message sous forme de popup.
+        Gère les types str, int et float.
+        
+        - Si l'entrée n'est pas valide, affiche un message d'erreur et demande à nouveau.
+        - Retourne la valeur dans le bon type.
+
+        Arguments :
+        - type : "str", "int" ou "float"
+        - question : Texte affiché dans la popup
+
+        Retourne :
+        - Une valeur de type str, int ou float
+        """
+        
+        entree_text = ""
+        erreur = False  # Pour afficher un message d'erreur
+
+        while True:
+
+            # Création de la popup
+            popup_width, popup_height = 400, 200
+            popup_surface = pg.Surface((popup_width, popup_height))
+            popup_surface.fill(self.BLUE)
+            popup_rect = popup_surface.get_rect(center=(self.screen_w // 2, self.screen_h // 2))
+
+            # Affichage du texte de la question
+            question_text = self.font.render(question, True, (255, 255, 255))
+            popup_surface.blit(question_text, (20, 20))
+
+            # Zone de saisie
+            input_box = pg.Rect(20, 70, 360, 40)
+            pg.draw.rect(popup_surface, (255, 255, 255), input_box, border_radius=5)
+
+            # Affichage du texte saisi
+            input_text_surface = self.font.render(entree_text, True, (0, 0, 0))
+            popup_surface.blit(input_text_surface, (input_box.x + 10, input_box.y + 10))
+
+            # Affichage du message d'erreur
+            if erreur:
+                error_text = self.font.render("Saisie invalide, réessayez.", True, (255, 50, 50))
+                popup_surface.blit(error_text, (20, 130))
+
+            # Bouton de validation
+            validate_button = pg.Rect(140, 160, 120, 30)
+            pg.draw.rect(popup_surface, (0, 200, 0), validate_button, border_radius=5)
+            validate_text = self.font.render("Valider", True, (255, 255, 255))
+            popup_surface.blit(validate_text, (validate_button.x + 30, validate_button.y + 5))
+
+            # Blit la popup sur l'écran
+            self.screen.blit(popup_surface, popup_rect.topleft)
+            pg.display.flip()
+
+            self.events = pg.event.get()
+
+            # Gestion des événements
+            for event in self.events:
+
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_RETURN:  # Valider avec "Entrée"
+                        if type == "int":
+                            try:
+                                return int(entree_text)
+                            except ValueError:
+                                erreur = True
+                        elif type == "float":
+                            try:
+                                return float(entree_text)
+                            except ValueError:
+                                erreur = True
+                        else:
+                            return f"{entree_text}"  # Retourne en tant que str
+
+                    elif event.key == pg.K_BACKSPACE:
+                        entree_text = entree_text[:-1]  # Supprimer le dernier caractère
+                    else:
+                        entree_text += event.unicode  # Ajouter la touche pressée
+
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    if validate_button.collidepoint(event.pos):  # Si on clique sur "Valider"
+                        if type == "int":
+                            try:
+                                return int(entree_text)
+                            except ValueError:
+                                erreur = True
+                        elif type == "float":
+                            try:
+                                return float(entree_text)
+                            except ValueError:
+                                erreur = True
+                        else:
+                            return f"{entree_text}"  # Retourne en tant que str
 
 
     def niveau_1(self):
@@ -1458,6 +1757,414 @@ Equipe de 2Methylbutan2ol-Serpentes
             "2 et 22",
             "5 et 45",
             "72 et 1",
+            "2 et 7",
+            "",
+            "Contraintes:",
+            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
+
+        ]
+
+        instructions_height = self.screen_h * 0.5  # Height for instructions area
+        buttons_height = self.screen_h * 0.4  # Height reserved for buttons
+        
+        instructions_surface = pg.Surface((LEFT_PANEL_WIDTH, instructions_height))
+        instructions_surface.fill((40, 40, 40))
+            
+        wrapped_lines = []
+        for instruction in instructions:
+            wrapped_lines.extend(self.wrap_text(instruction, LEFT_PANEL_WIDTH - 40, self.font))
+        
+        total_height = len(wrapped_lines) * 30
+        content_surface = pg.Surface((LEFT_PANEL_WIDTH, total_height))
+        content_surface.fill((40, 40, 40))
+        
+        for i, line in enumerate(wrapped_lines):
+            text = self.font.render(line, True, self.WHITE)
+            content_surface.blit(text, (20, i * 30))
+        
+        for event in self.events:
+            if event.type == pg.MOUSEWHEEL:
+                if instructions_surface.get_rect().collidepoint(pg.mouse.get_pos()):
+                    self.scroll_offset = max(min(0, self.scroll_offset + event.y * 30), 
+                                        -max(0, total_height - instructions_height))
+    
+
+
+        # Buttons at bottom of left panel
+        buttons = [
+           ("Notions de base", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.1), "Notions essentielles pour débuter"),
+            ("Variable", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.3), "Garder des informations en mémoire"),
+            ("Conditionnelle", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.5), "Exécuter selon certains conditions"),
+            ("Boucle for", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.7), "Répéter un certain nombre de fois"),
+            ("Boucle while", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.9), "Répéter selon une condition")
+        ]
+
+        buttons_surface = pg.Surface((LEFT_PANEL_WIDTH, buttons_height))
+        buttons_surface.fill((40, 40, 40))
+
+        for text, pos, alt_text in buttons:
+            button_width = LEFT_PANEL_WIDTH * 0.9
+            button_height = buttons_height * 0.15
+
+            mouse_pos = pg.mouse.get_pos()
+            relative_mouse_pos = (mouse_pos[0], mouse_pos[1] - instructions_height)
+            
+            hover = (pos[0] <= relative_mouse_pos[0] <= pos[0] + button_width and 
+                pos[1] <= relative_mouse_pos[1] <= pos[1] + button_height)
+
+            button_surface = pg.Surface((LEFT_PANEL_WIDTH - pos[0]*2, 40))
+            button_surface.fill(self.BLUE if not hover else self.DARK_BLUE)
+
+            text_surface = self.font.render(alt_text, True, self.WHITE) if hover else self.font.render(text, True, self.WHITE)
+            text_rect = text_surface.get_rect(center=((LEFT_PANEL_WIDTH - pos[0]*2)/2, 20))
+            button_surface.blit(text_surface, text_rect)
+            buttons_surface.blit(button_surface, pos)
+
+            if hover and pg.mouse.get_pressed()[0] and not self.shown_popup and not self.popup_text_show:
+                self.shown_popup = True
+                self.popup_text_show = text
+                self.scroll_y = 0         
+
+        # Draw right panel
+        right_panel = pg.Surface((RIGHT_PANEL_WIDTH, self.screen_h))
+        right_panel.fill((30, 30, 30))
+
+        # Code editor area
+        editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
+        editor_surface.fill(self.syntax_colors['background'])
+        self.handle_code_editor(editor_surface, self.events)
+
+
+        
+        # Play controls
+        play_button = pg.Surface((40, 40))
+        play_button.fill(self.GREEN)
+        pg.draw.polygon(play_button, self.WHITE, [(10, 10), (30, 20), (10, 30)])
+        
+        # Speed slider
+        slider_surface = pg.Surface((200, 10))
+        slider_surface.fill(self.GRAY)
+        
+        # Console/Output area
+        console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
+        console_surface.fill((20, 20, 20))
+        
+        # Trace button
+        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
+        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
+        pg.draw.rect(self.screen, trace_color, trace_button_rect)
+        trace_text = self.font.render("Trace", True, self.WHITE)
+        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
+        self.screen.blit(trace_text, trace_rect)
+
+        # Variable trace table
+        table_headers = ["Variable", "Type", "Valeur"]
+        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+        table_surface.fill((50, 50, 50))
+        
+        for i, header in enumerate(table_headers):
+            header_text = self.font.render(header, True, self.WHITE)
+            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+
+        # Console button
+        console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
+        console_color = self.DARK_BLUE if self.show_console else self.BLUE
+        pg.draw.rect(self.screen, console_color, console_button_rect)
+        console_text = self.font.render("Console", True, self.WHITE)
+        console_rect = console_text.get_rect(center=console_button_rect.center)
+        self.screen.blit(console_text, console_rect)
+
+        # Handle button clicks
+        mouse_pos = pg.mouse.get_pos()
+        adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
+
+        if pg.mouse.get_pressed()[0]:
+            if trace_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = True
+                self.show_console = False
+            elif console_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = False
+                self.show_console = True
+            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+                for i, line in enumerate(self.code_text):
+                    match = re.search(r'(\w*)\s*\(\s*input\s*\(\s*"(.*?)"\s*\)\s*\)', line)  # Recherche d'un type (int, float, str) et d'une question
+
+                    if match:
+                        type_detecte = match.group(1)  # int, float, str ou vide
+                        question = match.group(2)  # Contenu de input("...")
+
+                        # Définir le type utilisé dans hold_input
+                        if type_detecte not in ["int", "float"]:  
+                            type_detecte = "str"  # Par défaut, c'est une chaîne de caractères
+
+                        # Appeler hold_input pour récupérer la valeur
+                        result = self.hold_input(type_detecte, question)
+
+                        # Remplacer input(...) par la valeur obtenue
+                        self.code_text[i] = re.sub(r'\w*\s*\(\s*input\s*\(\s*".*?"\s*\)\s*\)', str(result), line)
+
+                code = "\n".join(self.code_text)
+                self.output = self.run_code(code)
+                self.verif_result = self.verif(self.code_text, self.output, 1)
+
+        # Display trace table or console based on state
+        if self.show_trace:
+            # Variable trace table
+            table_headers = ["Variable", "Type", "Valeur"]
+            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+            table_surface.fill((50, 50, 50))
+            
+            for i, header in enumerate(table_headers):
+                header_text = self.font.render(header, True, self.WHITE)
+                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        elif self.show_console:
+            if not self.output: 
+                console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
+                console_surface.blit(console_text, (20, 20))
+            else:
+
+                console_x = LEFT_PANEL_WIDTH + 10
+                console_y = EDITOR_HEIGHT
+                console_rect = pg.Rect(console_x, console_y, RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20)
+
+                total_height_console = 0
+
+                temp_y = 10
+                output_lines = self.output.split('\n')
+
+                for line in output_lines:
+                    words = line.split()
+                    current_line = []
+                    current_width = 0
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            temp_y += 25
+                            current_line = [word]
+                            current_width = word_width
+                    temp_y += 25
+                total_height_console = temp_y
+
+                for event in self.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        mouse_pos = pg.mouse.get_pos()
+                        if console_surface.get_rect().collidepoint(mouse_pos):
+                            self.console_scroll_y += event.y * 20
+                            # Limit scrolling
+                            self.console_scroll_y = min(0, max((- total_height_console + CONSOLE_HEIGHT - 40), self.console_scroll_y + event.y * 30))
+
+                y_offset = 10 + self.console_scroll_y
+
+                if self.output.startswith("COULEURROUGEErreur"):
+                    self.output = self.output.split("COULEURROUGE")[1]
+                    words = self.output.split()
+                    current_line = []
+                    current_width = 0
+                    
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                            console_surface.blit(error_surface, (10, y_offset))
+                            y_offset += 25
+                            current_line = [word]
+                            current_width = word_width
+                    
+                    if current_line:
+                        error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                        console_surface.blit(error_surface, (10, y_offset))
+                    self.text_error = True
+                else:
+                    if self.output.startswith("Bon :"):
+                        self.text_error = False
+                        self.output = self.output.split("Bon :")[-1]
+                    output_lines = self.output.split("\n")
+                    for line in output_lines:
+                        words = line.split()
+                        current_line = []
+                        current_width = 0
+                        
+                        for word in words:
+                            word_surface = self.font.render(word + ' ', True, self.WHITE)
+                            word_width = word_surface.get_width()
+                            
+                            if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                                current_line.append(word)
+                                current_width += word_width
+                            else:
+                                console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                                self.WHITE if not self.text_error else self.RED), 
+                                                (10, y_offset))
+                                y_offset += 25
+                                current_line = [word]
+                                current_width = word_width
+                        
+                        if current_line:
+                            console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                            self.WHITE if not self.text_error else self.RED), 
+                                            (10, y_offset))
+                            y_offset += 25
+
+                if total_height_console > CONSOLE_HEIGHT:
+                    scrollbar_height = (CONSOLE_HEIGHT / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    scrollbar_pos = (-self.console_scroll_y / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    pg.draw.rect(console_surface, (100, 100, 100), 
+                                (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
+                                border_radius=4)
+
+
+
+        # Add components to right panel
+        right_panel.blit(editor_surface, (10, 10))
+        right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
+        right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
+        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+
+        instructions_surface.blit(content_surface, (0, self.scroll_offset))
+
+        if total_height > instructions_height:
+            scrollbar_height = (instructions_height / total_height) * instructions_height
+            scrollbar_pos = (-self.scroll_offset / total_height) * instructions_height
+            
+            # Draw scrollbar handle
+            pg.draw.rect(instructions_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height), border_radius=4)
+
+
+
+        left_panel.blit(instructions_surface, (0, 0))
+
+        left_panel.blit(buttons_surface, (0, instructions_height))
+
+
+        # Add panels to main screen
+        self.screen.blit(left_panel, (0, 0))
+
+        if self.verif_result:
+            # Position the button above console, on the right side
+            next_button_rect = pg.Rect(RIGHT_PANEL_WIDTH - 170, EDITOR_HEIGHT - 50, 150, 40)
+            
+            # Draw button outline
+            pg.draw.rect(right_panel, self.WHITE, next_button_rect, 3, border_radius=10)
+            
+            # Draw button background
+            mouse_pos_adjusted = (pg.mouse.get_pos()[0] - LEFT_PANEL_WIDTH, pg.mouse.get_pos()[1])
+            hover = next_button_rect.collidepoint(mouse_pos_adjusted)
+            
+            pg.draw.rect(right_panel, self.GREEN if not hover else self.DARK_GREEN, 
+                        next_button_rect.inflate(-3, -3), border_radius=10)
+            
+            # Button text
+            next_text = self.font.render("Niveau 2", True, self.WHITE)
+            next_text_rect = next_text.get_rect(center=next_button_rect.center)
+            right_panel.blit(next_text, next_text_rect)
+            
+            # Handle click with adjusted mouse position
+            if hover and pg.mouse.get_pressed()[0]:
+                self.niv = 2
+                self.code_text = [""]
+                self.cursor_pos = [0, 0]
+                self.scroll_offset = 0
+                self.cursor_timer = 0
+                self.cursor_visible = True
+                self.space_number = [0]
+                self.output = None
+                self.verif_result = False
+
+
+        self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
+
+        if self.shown_popup and self.popup_text_show:
+            for event in self.events:
+                if event.type == pg.MOUSEWHEEL:
+                    self.scroll_y += event.y * 30
+
+            popup_text = self.dict_elements.get(self.popup_text_show, "Erreur, element introuvable")
+            popup_surface, self.scroll_y = self.draw_scrollable_popup(popup_text, self.scroll_y)     
+
+            if self.popup_closing:
+                self.popup_x -= self.slide_speed
+                if self.popup_x <= -self.screen_w * 0.4:
+                    self.popup_x = -self.screen_w * 0.4
+                    self.shown_popup = False
+                    self.popup_text_show = False
+                    self.popup_closing = False
+            else:
+                if self.popup_x < self.target_x:
+                    self.popup_x += self.slide_speed
+                    if self.popup_x > self.target_x:
+                        self.popup_x = self.target_x
+            
+            self.screen.blit(popup_surface, (self.popup_x, 0))
+        else:
+            self.popup_x = -self.screen_w * 0.4
+
+
+        # Draw separator
+        pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
+
+    def niveau_2(self):
+            # Constants for layout
+        LEFT_PANEL_WIDTH = self.screen_w * 0.4
+        RIGHT_PANEL_WIDTH = self.screen_w * 0.6
+        CONSOLE_HEIGHT = self.screen_h * 0.3
+        EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
+        button_width = 100
+        button_height = 30
+
+        for event in self.events:
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    if not self.popup_text_show and not self.shown_popup:
+                        self.mode = "menu"
+                        self.code_text = [""]
+                        self.cursor_pos = [0, 0]
+                        self.scroll_offset = 0
+                        self.cursor_timer = 0
+                        self.cursor_visible = True
+                        self.space_number = [0]
+                    else:
+                        self.popup_closing = True
+
+
+        # Clear screen
+        self.screen.fill(self.BLACK)
+
+        # Draw left panel
+        left_panel = pg.Surface((LEFT_PANEL_WIDTH, self.screen_h))
+        left_panel.fill((40, 40, 40))
+        
+        # Instructions area
+        instructions = [
+            "Consignes:",
+            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
+            "2. Utilisez une fonction contenant 2 arguments et un retour.",
+            "",
+            "Conseils:",
+            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oubliez pas de bien vérifier votre code.",
+            "",
+            "Test:",
+            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
+            "10 et 12 qui doit donner 37.0",
+            "10 et 13 qui doit donner 38.0",
+            "4 et 5 qui doit donner 15.0",
+            "2 et 22",
+            "5 et 45",
+            "72 et 1",
+            "2 et 7",
             "",
             "Contraintes:",
             "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
@@ -1588,6 +2295,7 @@ Equipe de 2Methylbutan2ol-Serpentes
             elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
                 code = "\n".join(self.code_text)
                 self.output = self.run_code(code)
+                self.verif_result = self.verif(self.code_text, self.output, 2)
 
         # Display trace table or console based on state
         if self.show_trace:
@@ -1705,7 +2413,6 @@ Equipe de 2Methylbutan2ol-Serpentes
                                 (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
                                 border_radius=4)
 
-                        
 
 
         # Add components to right panel
@@ -1734,6 +2441,39 @@ Equipe de 2Methylbutan2ol-Serpentes
 
         # Add panels to main screen
         self.screen.blit(left_panel, (0, 0))
+
+        if self.verif_result:
+            # Position the button above console, on the right side
+            next_button_rect = pg.Rect(RIGHT_PANEL_WIDTH - 170, EDITOR_HEIGHT - 50, 150, 40)
+            
+            # Draw button outline
+            pg.draw.rect(right_panel, self.WHITE, next_button_rect, 3, border_radius=10)
+            
+            # Draw button background
+            mouse_pos_adjusted = (pg.mouse.get_pos()[0] - LEFT_PANEL_WIDTH, pg.mouse.get_pos()[1])
+            hover = next_button_rect.collidepoint(mouse_pos_adjusted)
+            
+            pg.draw.rect(right_panel, self.GREEN if not hover else self.DARK_GREEN, 
+                        next_button_rect.inflate(-3, -3), border_radius=10)
+            
+            # Button text
+            next_text = self.font.render("Niveau 3", True, self.WHITE)
+            next_text_rect = next_text.get_rect(center=next_button_rect.center)
+            right_panel.blit(next_text, next_text_rect)
+            
+            # Handle click with adjusted mouse position
+            if hover and pg.mouse.get_pressed()[0]:
+                self.niv = 3
+                self.code_text = [""]
+                self.cursor_pos = [0, 0]
+                self.scroll_offset = 0
+                self.cursor_timer = 0
+                self.cursor_visible = True
+                self.space_number = [0]
+                self.output = None
+                self.verif_result = False
+
+
         self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
 
         if self.shown_popup and self.popup_text_show:
@@ -1761,136 +2501,33 @@ Equipe de 2Methylbutan2ol-Serpentes
         else:
             self.popup_x = -self.screen_w * 0.4
 
-        # Draw separator
-        pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
-
-    def niveau_2(self):
-        # Constants for layout
-        LEFT_PANEL_WIDTH = self.screen_w * 0.4
-        RIGHT_PANEL_WIDTH = self.screen_w * 0.6
-        CONSOLE_HEIGHT = self.screen_h * 0.3
-        EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
-        
-        # Colors for syntax highlighting (customizable)
-        self.syntax_colors = {
-            'keywords': (86, 156, 214),    # blue
-            'strings': (206, 145, 120),    # orange
-            'comments': (87, 166, 74),     # green
-            'numbers': (181, 206, 168),    # light green
-            'background': (30, 30, 30),    # dark gray
-            'text': (212, 212, 212)        # light gray
-        }
-
-        for event in self.events:
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    self.mode = "menu"
-
-        # Clear screen
-        self.screen.fill(self.BLACK)
-
-        # Draw left panel
-        left_panel = pg.Surface((LEFT_PANEL_WIDTH, self.screen_h))
-        left_panel.fill((40, 40, 40))
-        
-        # Instructions area
-        instructions = [
-            "Consignes:",
-            "1. Écrivez une fonction qui...",
-            "2. Utilisez les variables...",
-            "3. Affichez le résultat...",
-            "",
-            "Conseils:",
-            "- Pensez à initialiser...",
-            "- N'oubliez pas de..."
-        ]
-        
-        for i, line in enumerate(instructions):
-            text = self.font.render(line, True, self.WHITE)
-            left_panel.blit(text, (20, 20 + i * 30))
-
-        # Buttons at bottom of left panel
-        buttons = [
-            ("Notions de base", (20, self.screen_h - 150), "Notions essentielles pour débuter"),
-            ("Variable", (150, self.screen_h - 150), "Garder des informations en mémoire"),
-            ("Conditionelle", (280, self.screen_h - 150), "Exécuter selon certains conditions"),
-            ("Boucle for", (410, self.screen_h - 150), "Répéter un certain nombre de fois"),
-            ("Boucle while", (540, self.screen_h - 150), "Répéter selon une condition")
-        ]
-
-        for text, pos, alt_text in buttons:
-            button_surface = pg.Surface((100, 40))
-            button_surface.fill(self.GRAY)
-            text_surface = self.font.render(text, True, self.BLACK)
-            text_rect = text_surface.get_rect(center=(50, 20))
-            button_surface.blit(text_surface, text_rect)
-            left_panel.blit(button_surface, pos)
-
-        # Draw right panel
-        right_panel = pg.Surface((RIGHT_PANEL_WIDTH, self.screen_h))
-        right_panel.fill((30, 30, 30))
-
-        # Code editor area
-        editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
-        editor_surface.fill(self.syntax_colors['background'])
-        
-        # Play controls
-        play_button = pg.Surface((40, 40))
-        play_button.fill(self.GREEN)
-        pg.draw.polygon(play_button, self.WHITE, [(10, 10), (30, 20), (10, 30)])
-        
-        # Speed slider
-        slider_surface = pg.Surface((200, 10))
-        slider_surface.fill(self.GRAY)
-        
-        # Console/Output area
-        console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
-        console_surface.fill((20, 20, 20))
-        
-        # Variable trace table
-        table_headers = ["Variable", "Type", "Valeur"]
-        table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
-        table_surface.fill((50, 50, 50))
-        
-        for i, header in enumerate(table_headers):
-            header_text = self.font.render(header, True, self.WHITE)
-            table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
-
-        # Add components to right panel
-        right_panel.blit(editor_surface, (10, 10))
-        right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
-        right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
-
-        # Add panels to main screen
-        self.screen.blit(left_panel, (0, 0))
-        self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
 
     def niveau_3(self):
-        # Constants for layout
+            # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
-        
-        # Colors for syntax highlighting (customizable)
-        self.syntax_colors = {
-            'keywords': (86, 156, 214),    # blue
-            'strings': (206, 145, 120),    # orange
-            'comments': (87, 166, 74),     # green
-            'numbers': (181, 206, 168),    # light green
-            'background': (30, 30, 30),    # dark gray
-            'text': (212, 212, 212)        # light gray
-        }
+        button_width = 100
+        button_height = 30
 
         for event in self.events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
-                    self.mode = "menu"
+                    if not self.popup_text_show and not self.shown_popup:
+                        self.mode = "menu"
+                        self.code_text = [""]
+                        self.cursor_pos = [0, 0]
+                        self.scroll_offset = 0
+                        self.cursor_timer = 0
+                        self.cursor_visible = True
+                        self.space_number = [0]
+                    else:
+                        self.popup_closing = True
+
 
         # Clear screen
         self.screen.fill(self.BLACK)
@@ -1902,35 +2539,88 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui...",
-            "2. Utilisez les variables...",
-            "3. Affichez le résultat...",
+            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
+            "2. Utilisez une fonction contenant 2 arguments et un retour.",
             "",
             "Conseils:",
-            "- Pensez à initialiser...",
-            "- N'oubliez pas de..."
+            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oubliez pas de bien vérifier votre code.",
+            "",
+            "Test:",
+            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
+            "10 et 12 qui doit donner 37.0",
+            "10 et 13 qui doit donner 38.0",
+            "4 et 5 qui doit donner 15.0",
+            "2 et 22",
+            "5 et 45",
+            "72 et 1",
+            "2 et 7",
+            "",
+            "Contraintes:",
+            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
+
         ]
+
+        instructions_height = self.screen_h * 0.5  # Height for instructions area
+        buttons_height = self.screen_h * 0.4  # Height reserved for buttons
         
-        for i, line in enumerate(instructions):
+        instructions_surface = pg.Surface((LEFT_PANEL_WIDTH, instructions_height))
+        instructions_surface.fill((40, 40, 40))
+            
+        wrapped_lines = []
+        for instruction in instructions:
+            wrapped_lines.extend(self.wrap_text(instruction, LEFT_PANEL_WIDTH - 40, self.font))
+        
+        total_height = len(wrapped_lines) * 30
+        content_surface = pg.Surface((LEFT_PANEL_WIDTH, total_height))
+        content_surface.fill((40, 40, 40))
+        
+        for i, line in enumerate(wrapped_lines):
             text = self.font.render(line, True, self.WHITE)
-            left_panel.blit(text, (20, 20 + i * 30))
+            content_surface.blit(text, (20, i * 30))
+        
+        for event in self.events:
+            if event.type == pg.MOUSEWHEEL:
+                if instructions_surface.get_rect().collidepoint(pg.mouse.get_pos()):
+                    self.scroll_offset = max(min(0, self.scroll_offset + event.y * 30), 
+                                        -max(0, total_height - instructions_height))
+    
+
 
         # Buttons at bottom of left panel
         buttons = [
-            ("Notions de base", (20, self.screen_h - 150), "Notions essentielles pour débuter"),
-            ("Variable", (150, self.screen_h - 150), "Garder des informations en mémoire"),
-            ("Conditionelle", (280, self.screen_h - 150), "Exécuter selon certains conditions"),
-            ("Boucle for", (410, self.screen_h - 150), "Répéter un certain nombre de fois"),
-            ("Boucle while", (540, self.screen_h - 150), "Répéter selon une condition")
+           ("Notions de base", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.1), "Notions essentielles pour débuter"),
+            ("Variable", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.3), "Garder des informations en mémoire"),
+            ("Conditionnelle", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.5), "Exécuter selon certains conditions"),
+            ("Boucle for", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.7), "Répéter un certain nombre de fois"),
+            ("Boucle while", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.9), "Répéter selon une condition")
         ]
 
+        buttons_surface = pg.Surface((LEFT_PANEL_WIDTH, buttons_height))
+        buttons_surface.fill((40, 40, 40))
+
         for text, pos, alt_text in buttons:
-            button_surface = pg.Surface((100, 40))
-            button_surface.fill(self.GRAY)
-            text_surface = self.font.render(text, True, self.BLACK)
-            text_rect = text_surface.get_rect(center=(50, 20))
+            button_width = LEFT_PANEL_WIDTH * 0.9
+            button_height = buttons_height * 0.15
+
+            mouse_pos = pg.mouse.get_pos()
+            relative_mouse_pos = (mouse_pos[0], mouse_pos[1] - instructions_height)
+            
+            hover = (pos[0] <= relative_mouse_pos[0] <= pos[0] + button_width and 
+                pos[1] <= relative_mouse_pos[1] <= pos[1] + button_height)
+
+            button_surface = pg.Surface((LEFT_PANEL_WIDTH - pos[0]*2, 40))
+            button_surface.fill(self.BLUE if not hover else self.DARK_BLUE)
+
+            text_surface = self.font.render(alt_text, True, self.WHITE) if hover else self.font.render(text, True, self.WHITE)
+            text_rect = text_surface.get_rect(center=((LEFT_PANEL_WIDTH - pos[0]*2)/2, 20))
             button_surface.blit(text_surface, text_rect)
-            left_panel.blit(button_surface, pos)
+            buttons_surface.blit(button_surface, pos)
+
+            if hover and pg.mouse.get_pressed()[0] and not self.shown_popup and not self.popup_text_show:
+                self.shown_popup = True
+                self.popup_text_show = text
+                self.scroll_y = 0         
 
         # Draw right panel
         right_panel = pg.Surface((RIGHT_PANEL_WIDTH, self.screen_h))
@@ -1939,6 +2629,9 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Code editor area
         editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
         editor_surface.fill(self.syntax_colors['background'])
+        self.handle_code_editor(editor_surface, self.events)
+
+
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -1953,6 +2646,14 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
+        # Trace button
+        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
+        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
+        pg.draw.rect(self.screen, trace_color, trace_button_rect)
+        trace_text = self.font.render("Trace", True, self.WHITE)
+        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
+        self.screen.blit(trace_text, trace_rect)
+
         # Variable trace table
         table_headers = ["Variable", "Type", "Valeur"]
         table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
@@ -1962,41 +2663,261 @@ Equipe de 2Methylbutan2ol-Serpentes
             header_text = self.font.render(header, True, self.WHITE)
             table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
 
+        # Console button
+        console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
+        console_color = self.DARK_BLUE if self.show_console else self.BLUE
+        pg.draw.rect(self.screen, console_color, console_button_rect)
+        console_text = self.font.render("Console", True, self.WHITE)
+        console_rect = console_text.get_rect(center=console_button_rect.center)
+        self.screen.blit(console_text, console_rect)
+
+        # Handle button clicks
+        mouse_pos = pg.mouse.get_pos()
+        adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
+
+        if pg.mouse.get_pressed()[0]:
+            if trace_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = True
+                self.show_console = False
+            elif console_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = False
+                self.show_console = True
+            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+                code = "\n".join(self.code_text)
+                self.output = self.run_code(code)
+                self.verif_result = self.verif(self.code_text, self.output, 3)
+
+        # Display trace table or console based on state
+        if self.show_trace:
+            # Variable trace table
+            table_headers = ["Variable", "Type", "Valeur"]
+            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+            table_surface.fill((50, 50, 50))
+            
+            for i, header in enumerate(table_headers):
+                header_text = self.font.render(header, True, self.WHITE)
+                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        elif self.show_console:
+            if not self.output: 
+                console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
+                console_surface.blit(console_text, (20, 20))
+            else:
+
+                console_x = LEFT_PANEL_WIDTH + 10
+                console_y = EDITOR_HEIGHT
+                console_rect = pg.Rect(console_x, console_y, RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20)
+
+                total_height_console = 0
+
+                temp_y = 10
+                output_lines = self.output.split('\n')
+
+                for line in output_lines:
+                    words = line.split()
+                    current_line = []
+                    current_width = 0
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            temp_y += 25
+                            current_line = [word]
+                            current_width = word_width
+                    temp_y += 25
+                total_height_console = temp_y
+
+                for event in self.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        mouse_pos = pg.mouse.get_pos()
+                        if console_surface.get_rect().collidepoint(mouse_pos):
+                            self.console_scroll_y += event.y * 20
+                            # Limit scrolling
+                            self.console_scroll_y = min(0, max((- total_height_console + CONSOLE_HEIGHT - 40), self.console_scroll_y + event.y * 30))
+
+                y_offset = 10 + self.console_scroll_y
+
+                if self.output.startswith("COULEURROUGEErreur"):
+                    self.output = self.output.split("COULEURROUGE")[1]
+                    words = self.output.split()
+                    current_line = []
+                    current_width = 0
+                    
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                            console_surface.blit(error_surface, (10, y_offset))
+                            y_offset += 25
+                            current_line = [word]
+                            current_width = word_width
+                    
+                    if current_line:
+                        error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                        console_surface.blit(error_surface, (10, y_offset))
+                    self.text_error = True
+                else:
+                    if self.output.startswith("Bon :"):
+                        self.text_error = False
+                        self.output = self.output.split("Bon :")[-1]
+                    output_lines = self.output.split("\n")
+                    for line in output_lines:
+                        words = line.split()
+                        current_line = []
+                        current_width = 0
+                        
+                        for word in words:
+                            word_surface = self.font.render(word + ' ', True, self.WHITE)
+                            word_width = word_surface.get_width()
+                            
+                            if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                                current_line.append(word)
+                                current_width += word_width
+                            else:
+                                console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                                self.WHITE if not self.text_error else self.RED), 
+                                                (10, y_offset))
+                                y_offset += 25
+                                current_line = [word]
+                                current_width = word_width
+                        
+                        if current_line:
+                            console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                            self.WHITE if not self.text_error else self.RED), 
+                                            (10, y_offset))
+                            y_offset += 25
+
+                if total_height_console > CONSOLE_HEIGHT:
+                    scrollbar_height = (CONSOLE_HEIGHT / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    scrollbar_pos = (-self.console_scroll_y / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    pg.draw.rect(console_surface, (100, 100, 100), 
+                                (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
+                                border_radius=4)
+
+
+
         # Add components to right panel
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
+        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+
+        instructions_surface.blit(content_surface, (0, self.scroll_offset))
+
+        if total_height > instructions_height:
+            scrollbar_height = (instructions_height / total_height) * instructions_height
+            scrollbar_pos = (-self.scroll_offset / total_height) * instructions_height
+            
+            # Draw scrollbar handle
+            pg.draw.rect(instructions_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height), border_radius=4)
+
+
+
+        left_panel.blit(instructions_surface, (0, 0))
+
+        left_panel.blit(buttons_surface, (0, instructions_height))
+
 
         # Add panels to main screen
         self.screen.blit(left_panel, (0, 0))
+
+        if self.verif_result:
+            # Position the button above console, on the right side
+            next_button_rect = pg.Rect(RIGHT_PANEL_WIDTH - 170, EDITOR_HEIGHT - 50, 150, 40)
+            
+            # Draw button outline
+            pg.draw.rect(right_panel, self.WHITE, next_button_rect, 3, border_radius=10)
+            
+            # Draw button background
+            mouse_pos_adjusted = (pg.mouse.get_pos()[0] - LEFT_PANEL_WIDTH, pg.mouse.get_pos()[1])
+            hover = next_button_rect.collidepoint(mouse_pos_adjusted)
+            
+            pg.draw.rect(right_panel, self.GREEN if not hover else self.DARK_GREEN, 
+                        next_button_rect.inflate(-3, -3), border_radius=10)
+            
+            # Button text
+            next_text = self.font.render("Niveau 4", True, self.WHITE)
+            next_text_rect = next_text.get_rect(center=next_button_rect.center)
+            right_panel.blit(next_text, next_text_rect)
+            
+            # Handle click with adjusted mouse position
+            if hover and pg.mouse.get_pressed()[0]:
+                self.niv = 4
+                self.code_text = [""]
+                self.cursor_pos = [0, 0]
+                self.scroll_offset = 0
+                self.cursor_timer = 0
+                self.cursor_visible = True
+                self.space_number = [0]
+                self.output = None
+                self.verif_result = False
+
+
         self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
+
+        if self.shown_popup and self.popup_text_show:
+            for event in self.events:
+                if event.type == pg.MOUSEWHEEL:
+                    self.scroll_y += event.y * 30
+
+            popup_text = self.dict_elements.get(self.popup_text_show, "Erreur, element introuvable")
+            popup_surface, self.scroll_y = self.draw_scrollable_popup(popup_text, self.scroll_y)     
+
+            if self.popup_closing:
+                self.popup_x -= self.slide_speed
+                if self.popup_x <= -self.screen_w * 0.4:
+                    self.popup_x = -self.screen_w * 0.4
+                    self.shown_popup = False
+                    self.popup_text_show = False
+                    self.popup_closing = False
+            else:
+                if self.popup_x < self.target_x:
+                    self.popup_x += self.slide_speed
+                    if self.popup_x > self.target_x:
+                        self.popup_x = self.target_x
+            
+            self.screen.blit(popup_surface, (self.popup_x, 0))
+        else:
+            self.popup_x = -self.screen_w * 0.4
+
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
 
     def niveau_4(self):
-        # Constants for layout
+            # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
-        
-        # Colors for syntax highlighting (customizable)
-        self.syntax_colors = {
-            'keywords': (86, 156, 214),    # blue
-            'strings': (206, 145, 120),    # orange
-            'comments': (87, 166, 74),     # green
-            'numbers': (181, 206, 168),    # light green
-            'background': (30, 30, 30),    # dark gray
-            'text': (212, 212, 212)        # light gray
-        }
+        button_width = 100
+        button_height = 30
 
         for event in self.events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
-                    self.mode = "menu"
+                    if not self.popup_text_show and not self.shown_popup:
+                        self.mode = "menu"
+                        self.code_text = [""]
+                        self.cursor_pos = [0, 0]
+                        self.scroll_offset = 0
+                        self.cursor_timer = 0
+                        self.cursor_visible = True
+                        self.space_number = [0]
+                    else:
+                        self.popup_closing = True
+
 
         # Clear screen
         self.screen.fill(self.BLACK)
@@ -2008,35 +2929,88 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui...",
-            "2. Utilisez les variables...",
-            "3. Affichez le résultat...",
+            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
+            "2. Utilisez une fonction contenant 2 arguments et un retour.",
             "",
             "Conseils:",
-            "- Pensez à initialiser...",
-            "- N'oubliez pas de..."
+            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oubliez pas de bien vérifier votre code.",
+            "",
+            "Test:",
+            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
+            "10 et 12 qui doit donner 37.0",
+            "10 et 13 qui doit donner 38.0",
+            "4 et 5 qui doit donner 15.0",
+            "2 et 22",
+            "5 et 45",
+            "72 et 1",
+            "2 et 7",
+            "",
+            "Contraintes:",
+            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
+
         ]
+
+        instructions_height = self.screen_h * 0.5  # Height for instructions area
+        buttons_height = self.screen_h * 0.4  # Height reserved for buttons
         
-        for i, line in enumerate(instructions):
+        instructions_surface = pg.Surface((LEFT_PANEL_WIDTH, instructions_height))
+        instructions_surface.fill((40, 40, 40))
+            
+        wrapped_lines = []
+        for instruction in instructions:
+            wrapped_lines.extend(self.wrap_text(instruction, LEFT_PANEL_WIDTH - 40, self.font))
+        
+        total_height = len(wrapped_lines) * 30
+        content_surface = pg.Surface((LEFT_PANEL_WIDTH, total_height))
+        content_surface.fill((40, 40, 40))
+        
+        for i, line in enumerate(wrapped_lines):
             text = self.font.render(line, True, self.WHITE)
-            left_panel.blit(text, (20, 20 + i * 30))
+            content_surface.blit(text, (20, i * 30))
+        
+        for event in self.events:
+            if event.type == pg.MOUSEWHEEL:
+                if instructions_surface.get_rect().collidepoint(pg.mouse.get_pos()):
+                    self.scroll_offset = max(min(0, self.scroll_offset + event.y * 30), 
+                                        -max(0, total_height - instructions_height))
+    
+
 
         # Buttons at bottom of left panel
         buttons = [
-            ("Notions de base", (20, self.screen_h - 150), "Notions essentielles pour débuter"),
-            ("Variable", (150, self.screen_h - 150), "Garder des informations en mémoire"),
-            ("Conditionelle", (280, self.screen_h - 150), "Exécuter selon certains conditions"),
-            ("Boucle for", (410, self.screen_h - 150), "Répéter un certain nombre de fois"),
-            ("Boucle while", (540, self.screen_h - 150), "Répéter selon une condition")
+           ("Notions de base", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.1), "Notions essentielles pour débuter"),
+            ("Variable", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.3), "Garder des informations en mémoire"),
+            ("Conditionnelle", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.5), "Exécuter selon certains conditions"),
+            ("Boucle for", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.7), "Répéter un certain nombre de fois"),
+            ("Boucle while", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.9), "Répéter selon une condition")
         ]
 
+        buttons_surface = pg.Surface((LEFT_PANEL_WIDTH, buttons_height))
+        buttons_surface.fill((40, 40, 40))
+
         for text, pos, alt_text in buttons:
-            button_surface = pg.Surface((100, 40))
-            button_surface.fill(self.GRAY)
-            text_surface = self.font.render(text, True, self.BLACK)
-            text_rect = text_surface.get_rect(center=(50, 20))
+            button_width = LEFT_PANEL_WIDTH * 0.9
+            button_height = buttons_height * 0.15
+
+            mouse_pos = pg.mouse.get_pos()
+            relative_mouse_pos = (mouse_pos[0], mouse_pos[1] - instructions_height)
+            
+            hover = (pos[0] <= relative_mouse_pos[0] <= pos[0] + button_width and 
+                pos[1] <= relative_mouse_pos[1] <= pos[1] + button_height)
+
+            button_surface = pg.Surface((LEFT_PANEL_WIDTH - pos[0]*2, 40))
+            button_surface.fill(self.BLUE if not hover else self.DARK_BLUE)
+
+            text_surface = self.font.render(alt_text, True, self.WHITE) if hover else self.font.render(text, True, self.WHITE)
+            text_rect = text_surface.get_rect(center=((LEFT_PANEL_WIDTH - pos[0]*2)/2, 20))
             button_surface.blit(text_surface, text_rect)
-            left_panel.blit(button_surface, pos)
+            buttons_surface.blit(button_surface, pos)
+
+            if hover and pg.mouse.get_pressed()[0] and not self.shown_popup and not self.popup_text_show:
+                self.shown_popup = True
+                self.popup_text_show = text
+                self.scroll_y = 0         
 
         # Draw right panel
         right_panel = pg.Surface((RIGHT_PANEL_WIDTH, self.screen_h))
@@ -2045,6 +3019,9 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Code editor area
         editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
         editor_surface.fill(self.syntax_colors['background'])
+        self.handle_code_editor(editor_surface, self.events)
+
+
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -2059,6 +3036,14 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
+        # Trace button
+        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
+        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
+        pg.draw.rect(self.screen, trace_color, trace_button_rect)
+        trace_text = self.font.render("Trace", True, self.WHITE)
+        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
+        self.screen.blit(trace_text, trace_rect)
+
         # Variable trace table
         table_headers = ["Variable", "Type", "Valeur"]
         table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
@@ -2068,41 +3053,261 @@ Equipe de 2Methylbutan2ol-Serpentes
             header_text = self.font.render(header, True, self.WHITE)
             table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
 
+        # Console button
+        console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
+        console_color = self.DARK_BLUE if self.show_console else self.BLUE
+        pg.draw.rect(self.screen, console_color, console_button_rect)
+        console_text = self.font.render("Console", True, self.WHITE)
+        console_rect = console_text.get_rect(center=console_button_rect.center)
+        self.screen.blit(console_text, console_rect)
+
+        # Handle button clicks
+        mouse_pos = pg.mouse.get_pos()
+        adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
+
+        if pg.mouse.get_pressed()[0]:
+            if trace_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = True
+                self.show_console = False
+            elif console_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = False
+                self.show_console = True
+            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+                code = "\n".join(self.code_text)
+                self.output = self.run_code(code)
+                self.verif_result = self.verif(self.code_text, self.output, 4)
+
+        # Display trace table or console based on state
+        if self.show_trace:
+            # Variable trace table
+            table_headers = ["Variable", "Type", "Valeur"]
+            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+            table_surface.fill((50, 50, 50))
+            
+            for i, header in enumerate(table_headers):
+                header_text = self.font.render(header, True, self.WHITE)
+                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        elif self.show_console:
+            if not self.output: 
+                console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
+                console_surface.blit(console_text, (20, 20))
+            else:
+
+                console_x = LEFT_PANEL_WIDTH + 10
+                console_y = EDITOR_HEIGHT
+                console_rect = pg.Rect(console_x, console_y, RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20)
+
+                total_height_console = 0
+
+                temp_y = 10
+                output_lines = self.output.split('\n')
+
+                for line in output_lines:
+                    words = line.split()
+                    current_line = []
+                    current_width = 0
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            temp_y += 25
+                            current_line = [word]
+                            current_width = word_width
+                    temp_y += 25
+                total_height_console = temp_y
+
+                for event in self.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        mouse_pos = pg.mouse.get_pos()
+                        if console_surface.get_rect().collidepoint(mouse_pos):
+                            self.console_scroll_y += event.y * 20
+                            # Limit scrolling
+                            self.console_scroll_y = min(0, max((- total_height_console + CONSOLE_HEIGHT - 40), self.console_scroll_y + event.y * 30))
+
+                y_offset = 10 + self.console_scroll_y
+
+                if self.output.startswith("COULEURROUGEErreur"):
+                    self.output = self.output.split("COULEURROUGE")[1]
+                    words = self.output.split()
+                    current_line = []
+                    current_width = 0
+                    
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                            console_surface.blit(error_surface, (10, y_offset))
+                            y_offset += 25
+                            current_line = [word]
+                            current_width = word_width
+                    
+                    if current_line:
+                        error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                        console_surface.blit(error_surface, (10, y_offset))
+                    self.text_error = True
+                else:
+                    if self.output.startswith("Bon :"):
+                        self.text_error = False
+                        self.output = self.output.split("Bon :")[-1]
+                    output_lines = self.output.split("\n")
+                    for line in output_lines:
+                        words = line.split()
+                        current_line = []
+                        current_width = 0
+                        
+                        for word in words:
+                            word_surface = self.font.render(word + ' ', True, self.WHITE)
+                            word_width = word_surface.get_width()
+                            
+                            if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                                current_line.append(word)
+                                current_width += word_width
+                            else:
+                                console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                                self.WHITE if not self.text_error else self.RED), 
+                                                (10, y_offset))
+                                y_offset += 25
+                                current_line = [word]
+                                current_width = word_width
+                        
+                        if current_line:
+                            console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                            self.WHITE if not self.text_error else self.RED), 
+                                            (10, y_offset))
+                            y_offset += 25
+
+                if total_height_console > CONSOLE_HEIGHT:
+                    scrollbar_height = (CONSOLE_HEIGHT / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    scrollbar_pos = (-self.console_scroll_y / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    pg.draw.rect(console_surface, (100, 100, 100), 
+                                (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
+                                border_radius=4)
+
+
+
         # Add components to right panel
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
+        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+
+        instructions_surface.blit(content_surface, (0, self.scroll_offset))
+
+        if total_height > instructions_height:
+            scrollbar_height = (instructions_height / total_height) * instructions_height
+            scrollbar_pos = (-self.scroll_offset / total_height) * instructions_height
+            
+            # Draw scrollbar handle
+            pg.draw.rect(instructions_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height), border_radius=4)
+
+
+
+        left_panel.blit(instructions_surface, (0, 0))
+
+        left_panel.blit(buttons_surface, (0, instructions_height))
+
 
         # Add panels to main screen
         self.screen.blit(left_panel, (0, 0))
+
+        if self.verif_result:
+            # Position the button above console, on the right side
+            next_button_rect = pg.Rect(RIGHT_PANEL_WIDTH - 170, EDITOR_HEIGHT - 50, 150, 40)
+            
+            # Draw button outline
+            pg.draw.rect(right_panel, self.WHITE, next_button_rect, 3, border_radius=10)
+            
+            # Draw button background
+            mouse_pos_adjusted = (pg.mouse.get_pos()[0] - LEFT_PANEL_WIDTH, pg.mouse.get_pos()[1])
+            hover = next_button_rect.collidepoint(mouse_pos_adjusted)
+            
+            pg.draw.rect(right_panel, self.GREEN if not hover else self.DARK_GREEN, 
+                        next_button_rect.inflate(-3, -3), border_radius=10)
+            
+            # Button text
+            next_text = self.font.render("FINI !!", True, self.WHITE)
+            next_text_rect = next_text.get_rect(center=next_button_rect.center)
+            right_panel.blit(next_text, next_text_rect)
+            
+            # Handle click with adjusted mouse position
+            if hover and pg.mouse.get_pressed()[0]:
+                self.niv = 5
+                self.code_text = [""]
+                self.cursor_pos = [0, 0]
+                self.scroll_offset = 0
+                self.cursor_timer = 0
+                self.cursor_visible = True
+                self.space_number = [0]
+                self.output = None
+                self.verif_result = False
+
+
         self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
+
+        if self.shown_popup and self.popup_text_show:
+            for event in self.events:
+                if event.type == pg.MOUSEWHEEL:
+                    self.scroll_y += event.y * 30
+
+            popup_text = self.dict_elements.get(self.popup_text_show, "Erreur, element introuvable")
+            popup_surface, self.scroll_y = self.draw_scrollable_popup(popup_text, self.scroll_y)     
+
+            if self.popup_closing:
+                self.popup_x -= self.slide_speed
+                if self.popup_x <= -self.screen_w * 0.4:
+                    self.popup_x = -self.screen_w * 0.4
+                    self.shown_popup = False
+                    self.popup_text_show = False
+                    self.popup_closing = False
+            else:
+                if self.popup_x < self.target_x:
+                    self.popup_x += self.slide_speed
+                    if self.popup_x > self.target_x:
+                        self.popup_x = self.target_x
+            
+            self.screen.blit(popup_surface, (self.popup_x, 0))
+        else:
+            self.popup_x = -self.screen_w * 0.4
+
 
         # Draw separator
         pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
 
     def niveau_5(self):
-        # Constants for layout
+            # Constants for layout
         LEFT_PANEL_WIDTH = self.screen_w * 0.4
         RIGHT_PANEL_WIDTH = self.screen_w * 0.6
         CONSOLE_HEIGHT = self.screen_h * 0.3
         EDITOR_HEIGHT = self.screen_h - CONSOLE_HEIGHT
-        
-        # Colors for syntax highlighting (customizable)
-        self.syntax_colors = {
-            'keywords': (86, 156, 214),    # blue
-            'strings': (206, 145, 120),    # orange
-            'comments': (87, 166, 74),     # green
-            'numbers': (181, 206, 168),    # light green
-            'background': (30, 30, 30),    # dark gray
-            'text': (212, 212, 212)        # light gray
-        }
+        button_width = 100
+        button_height = 30
 
         for event in self.events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
-                    self.mode = "menu"
+                    if not self.popup_text_show and not self.shown_popup:
+                        self.mode = "menu"
+                        self.code_text = [""]
+                        self.cursor_pos = [0, 0]
+                        self.scroll_offset = 0
+                        self.cursor_timer = 0
+                        self.cursor_visible = True
+                        self.space_number = [0]
+                    else:
+                        self.popup_closing = True
+
 
         # Clear screen
         self.screen.fill(self.BLACK)
@@ -2114,35 +3319,88 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Instructions area
         instructions = [
             "Consignes:",
-            "1. Écrivez une fonction qui...",
-            "2. Utilisez les variables...",
-            "3. Affichez le résultat...",
+            "1. Écrivez une fonction qui calcule le triple d'un chiffre, soustrait la moitié du chiffre de départ et ajoute un autre nombre donné.",
+            "2. Utilisez une fonction contenant 2 arguments et un retour.",
             "",
             "Conseils:",
-            "- Pensez à initialiser...",
-            "- N'oubliez pas de..."
+            "- Pensez à regarder la catégorie avec les opérateurs.",
+            "- N'oubliez pas de bien vérifier votre code.",
+            "",
+            "Test:",
+            "Testez votre code avec les valeurs suivantes : (en une seule exécution)",
+            "10 et 12 qui doit donner 37.0",
+            "10 et 13 qui doit donner 38.0",
+            "4 et 5 qui doit donner 15.0",
+            "2 et 22",
+            "5 et 45",
+            "72 et 1",
+            "2 et 7",
+            "",
+            "Contraintes:",
+            "- Vous devez réaliser ce code en moins de 15 lignes de code et vous n'avez le droit qu'à une seule exécution pour compléter les demandes afin de passer au niveau suivant."
+
         ]
+
+        instructions_height = self.screen_h * 0.5  # Height for instructions area
+        buttons_height = self.screen_h * 0.4  # Height reserved for buttons
         
-        for i, line in enumerate(instructions):
+        instructions_surface = pg.Surface((LEFT_PANEL_WIDTH, instructions_height))
+        instructions_surface.fill((40, 40, 40))
+            
+        wrapped_lines = []
+        for instruction in instructions:
+            wrapped_lines.extend(self.wrap_text(instruction, LEFT_PANEL_WIDTH - 40, self.font))
+        
+        total_height = len(wrapped_lines) * 30
+        content_surface = pg.Surface((LEFT_PANEL_WIDTH, total_height))
+        content_surface.fill((40, 40, 40))
+        
+        for i, line in enumerate(wrapped_lines):
             text = self.font.render(line, True, self.WHITE)
-            left_panel.blit(text, (20, 20 + i * 30))
+            content_surface.blit(text, (20, i * 30))
+        
+        for event in self.events:
+            if event.type == pg.MOUSEWHEEL:
+                if instructions_surface.get_rect().collidepoint(pg.mouse.get_pos()):
+                    self.scroll_offset = max(min(0, self.scroll_offset + event.y * 30), 
+                                        -max(0, total_height - instructions_height))
+    
+
 
         # Buttons at bottom of left panel
         buttons = [
-            ("Notions de base", (20, self.screen_h - 150), "Notions essentielles pour débuter"),
-            ("Variable", (150, self.screen_h - 150), "Garder des informations en mémoire"),
-            ("Conditionelle", (280, self.screen_h - 150), "Exécuter selon certains conditions"),
-            ("Boucle for", (410, self.screen_h - 150), "Répéter un certain nombre de fois"),
-            ("Boucle while", (540, self.screen_h - 150), "Répéter selon une condition")
+           ("Notions de base", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.1), "Notions essentielles pour débuter"),
+            ("Variable", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.3), "Garder des informations en mémoire"),
+            ("Conditionnelle", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.5), "Exécuter selon certains conditions"),
+            ("Boucle for", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.7), "Répéter un certain nombre de fois"),
+            ("Boucle while", (LEFT_PANEL_WIDTH * 0.05, buttons_height * 0.9), "Répéter selon une condition")
         ]
 
+        buttons_surface = pg.Surface((LEFT_PANEL_WIDTH, buttons_height))
+        buttons_surface.fill((40, 40, 40))
+
         for text, pos, alt_text in buttons:
-            button_surface = pg.Surface((100, 40))
-            button_surface.fill(self.GRAY)
-            text_surface = self.font.render(text, True, self.BLACK)
-            text_rect = text_surface.get_rect(center=(50, 20))
+            button_width = LEFT_PANEL_WIDTH * 0.9
+            button_height = buttons_height * 0.15
+
+            mouse_pos = pg.mouse.get_pos()
+            relative_mouse_pos = (mouse_pos[0], mouse_pos[1] - instructions_height)
+            
+            hover = (pos[0] <= relative_mouse_pos[0] <= pos[0] + button_width and 
+                pos[1] <= relative_mouse_pos[1] <= pos[1] + button_height)
+
+            button_surface = pg.Surface((LEFT_PANEL_WIDTH - pos[0]*2, 40))
+            button_surface.fill(self.BLUE if not hover else self.DARK_BLUE)
+
+            text_surface = self.font.render(alt_text, True, self.WHITE) if hover else self.font.render(text, True, self.WHITE)
+            text_rect = text_surface.get_rect(center=((LEFT_PANEL_WIDTH - pos[0]*2)/2, 20))
             button_surface.blit(text_surface, text_rect)
-            left_panel.blit(button_surface, pos)
+            buttons_surface.blit(button_surface, pos)
+
+            if hover and pg.mouse.get_pressed()[0] and not self.shown_popup and not self.popup_text_show:
+                self.shown_popup = True
+                self.popup_text_show = text
+                self.scroll_y = 0         
 
         # Draw right panel
         right_panel = pg.Surface((RIGHT_PANEL_WIDTH, self.screen_h))
@@ -2151,6 +3409,9 @@ Equipe de 2Methylbutan2ol-Serpentes
         # Code editor area
         editor_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, EDITOR_HEIGHT - 60))
         editor_surface.fill(self.syntax_colors['background'])
+        self.handle_code_editor(editor_surface, self.events)
+
+
         
         # Play controls
         play_button = pg.Surface((40, 40))
@@ -2165,6 +3426,14 @@ Equipe de 2Methylbutan2ol-Serpentes
         console_surface = pg.Surface((RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20))
         console_surface.fill((20, 20, 20))
         
+        # Trace button
+        trace_button_rect = pg.Rect(LEFT_PANEL_WIDTH + 20, EDITOR_HEIGHT + 10, button_width, button_height)
+        trace_color = self.DARK_BLUE if self.show_trace else self.BLUE
+        pg.draw.rect(self.screen, trace_color, trace_button_rect)
+        trace_text = self.font.render("Trace", True, self.WHITE)
+        trace_rect = trace_text.get_rect(center=trace_button_rect.center)
+        self.screen.blit(trace_text, trace_rect)
+
         # Variable trace table
         table_headers = ["Variable", "Type", "Valeur"]
         table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
@@ -2174,23 +3443,249 @@ Equipe de 2Methylbutan2ol-Serpentes
             header_text = self.font.render(header, True, self.WHITE)
             table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
 
+        # Console button
+        console_button_rect = pg.Rect(LEFT_PANEL_WIDTH + button_width + 30, EDITOR_HEIGHT + 10, button_width, button_height)
+        console_color = self.DARK_BLUE if self.show_console else self.BLUE
+        pg.draw.rect(self.screen, console_color, console_button_rect)
+        console_text = self.font.render("Console", True, self.WHITE)
+        console_rect = console_text.get_rect(center=console_button_rect.center)
+        self.screen.blit(console_text, console_rect)
+
+        # Handle button clicks
+        mouse_pos = pg.mouse.get_pos()
+        adjusted_pos = (mouse_pos[0] - LEFT_PANEL_WIDTH, mouse_pos[1])  # Adjust for right panel position
+
+        if pg.mouse.get_pressed()[0]:
+            if trace_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = True
+                self.show_console = False
+            elif console_button_rect.collidepoint(adjusted_pos):
+                self.show_trace = False
+                self.show_console = True
+            elif 10 <= adjusted_pos[0] <= 50 and EDITOR_HEIGHT - 50 <= adjusted_pos[1] <= EDITOR_HEIGHT - 10:
+                code = "\n".join(self.code_text)
+                self.output = self.run_code(code)
+                self.verif_result = self.verif(self.code_text, self.output, 5)
+
+        # Display trace table or console based on state
+        if self.show_trace:
+            # Variable trace table
+            table_headers = ["Variable", "Type", "Valeur"]
+            table_surface = pg.Surface((RIGHT_PANEL_WIDTH - 40, CONSOLE_HEIGHT - 60))
+            table_surface.fill((50, 50, 50))
+            
+            for i, header in enumerate(table_headers):
+                header_text = self.font.render(header, True, self.WHITE)
+                table_surface.blit(header_text, (20 + i * (RIGHT_PANEL_WIDTH - 40) // 3, 10))
+            right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+
+        elif self.show_console:
+            if not self.output: 
+                console_text = self.font.render("Rien n'a été exécuté ici...", True, self.WHITE)
+                console_surface.blit(console_text, (20, 20))
+            else:
+
+                console_x = LEFT_PANEL_WIDTH + 10
+                console_y = EDITOR_HEIGHT
+                console_rect = pg.Rect(console_x, console_y, RIGHT_PANEL_WIDTH - 20, CONSOLE_HEIGHT - 20)
+
+                total_height_console = 0
+
+                temp_y = 10
+                output_lines = self.output.split('\n')
+
+                for line in output_lines:
+                    words = line.split()
+                    current_line = []
+                    current_width = 0
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            temp_y += 25
+                            current_line = [word]
+                            current_width = word_width
+                    temp_y += 25
+                total_height_console = temp_y
+
+                for event in self.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        mouse_pos = pg.mouse.get_pos()
+                        if console_surface.get_rect().collidepoint(mouse_pos):
+                            self.console_scroll_y += event.y * 20
+                            # Limit scrolling
+                            self.console_scroll_y = min(0, max((- total_height_console + CONSOLE_HEIGHT - 40), self.console_scroll_y + event.y * 30))
+
+                y_offset = 10 + self.console_scroll_y
+
+                if self.output.startswith("COULEURROUGEErreur"):
+                    self.output = self.output.split("COULEURROUGE")[1]
+                    words = self.output.split()
+                    current_line = []
+                    current_width = 0
+                    
+                    for word in words:
+                        word_surface = self.font.render(word + ' ', True, self.WHITE)
+                        word_width = word_surface.get_width()
+                        
+                        if current_width + word_width <= RIGHT_PANEL_WIDTH - 60:
+                            current_line.append(word)
+                            current_width += word_width
+                        else:
+                            error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                            console_surface.blit(error_surface, (10, y_offset))
+                            y_offset += 25
+                            current_line = [word]
+                            current_width = word_width
+                    
+                    if current_line:
+                        error_surface = self.font.render(' '.join(current_line), True, self.WHITE, self.RED)
+                        console_surface.blit(error_surface, (10, y_offset))
+                    self.text_error = True
+                else:
+                    if self.output.startswith("Bon :"):
+                        self.text_error = False
+                        self.output = self.output.split("Bon :")[-1]
+                    output_lines = self.output.split("\n")
+                    for line in output_lines:
+                        words = line.split()
+                        current_line = []
+                        current_width = 0
+                        
+                        for word in words:
+                            word_surface = self.font.render(word + ' ', True, self.WHITE)
+                            word_width = word_surface.get_width()
+                            
+                            if current_width + word_width <= RIGHT_PANEL_WIDTH - 40:
+                                current_line.append(word)
+                                current_width += word_width
+                            else:
+                                console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                                self.WHITE if not self.text_error else self.RED), 
+                                                (10, y_offset))
+                                y_offset += 25
+                                current_line = [word]
+                                current_width = word_width
+                        
+                        if current_line:
+                            console_surface.blit(self.font.render(' '.join(current_line), True, 
+                                            self.WHITE if not self.text_error else self.RED), 
+                                            (10, y_offset))
+                            y_offset += 25
+
+                if total_height_console > CONSOLE_HEIGHT:
+                    scrollbar_height = (CONSOLE_HEIGHT / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    scrollbar_pos = (-self.console_scroll_y / total_height_console) * (CONSOLE_HEIGHT - 20)
+                    pg.draw.rect(console_surface, (100, 100, 100), 
+                                (RIGHT_PANEL_WIDTH - 30, scrollbar_pos, 8, scrollbar_height),
+                                border_radius=4)
+
+
+
         # Add components to right panel
         right_panel.blit(editor_surface, (10, 10))
         right_panel.blit(play_button, (10, EDITOR_HEIGHT - 50))
         right_panel.blit(slider_surface, (60, EDITOR_HEIGHT - 45))
-        right_panel.blit(console_surface, (10, EDITOR_HEIGHT))
-        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40))
+        right_panel.blit(console_surface, (10, EDITOR_HEIGHT)) if self.show_console and not self.show_trace else None
+        right_panel.blit(table_surface, (20, EDITOR_HEIGHT + 40)) if self.show_trace and not self.show_console else None
+
+        instructions_surface.blit(content_surface, (0, self.scroll_offset))
+
+        if total_height > instructions_height:
+            scrollbar_height = (instructions_height / total_height) * instructions_height
+            scrollbar_pos = (-self.scroll_offset / total_height) * instructions_height
+            
+            # Draw scrollbar handle
+            pg.draw.rect(instructions_surface, (100, 100, 100), 
+                        (LEFT_PANEL_WIDTH - 10, scrollbar_pos, 8, scrollbar_height), border_radius=4)
+
+
+
+        left_panel.blit(instructions_surface, (0, 0))
+
+        left_panel.blit(buttons_surface, (0, instructions_height))
+
 
         # Add panels to main screen
         self.screen.blit(left_panel, (0, 0))
+
+        if self.verif_result:
+            # Position the button above console, on the right side
+            next_button_rect = pg.Rect(RIGHT_PANEL_WIDTH - 170, EDITOR_HEIGHT - 50, 150, 40)
+            
+            # Draw button outline
+            pg.draw.rect(right_panel, self.WHITE, next_button_rect, 3, border_radius=10)
+            
+            # Draw button background
+            mouse_pos_adjusted = (pg.mouse.get_pos()[0] - LEFT_PANEL_WIDTH, pg.mouse.get_pos()[1])
+            hover = next_button_rect.collidepoint(mouse_pos_adjusted)
+            
+            pg.draw.rect(right_panel, self.GREEN if not hover else self.DARK_GREEN, 
+                        next_button_rect.inflate(-3, -3), border_radius=10)
+            
+            # Button text
+            next_text = self.font.render("FINI !!", True, self.WHITE)
+            next_text_rect = next_text.get_rect(center=next_button_rect.center)
+            right_panel.blit(next_text, next_text_rect)
+            
+            # Handle click with adjusted mouse position
+            if hover and pg.mouse.get_pressed()[0]:
+                self.niv = "fini"
+                self.code_text = [""]
+                self.cursor_pos = [0, 0]
+                self.scroll_offset = 0
+                self.cursor_timer = 0
+                self.cursor_visible = True
+                self.space_number = [0]
+                self.output = None
+                self.verif_result = False
+
+
         self.screen.blit(right_panel, (LEFT_PANEL_WIDTH, 0))
 
+        if self.shown_popup and self.popup_text_show:
+            for event in self.events:
+                if event.type == pg.MOUSEWHEEL:
+                    self.scroll_y += event.y * 30
+
+            popup_text = self.dict_elements.get(self.popup_text_show, "Erreur, element introuvable")
+            popup_surface, self.scroll_y = self.draw_scrollable_popup(popup_text, self.scroll_y)     
+
+            if self.popup_closing:
+                self.popup_x -= self.slide_speed
+                if self.popup_x <= -self.screen_w * 0.4:
+                    self.popup_x = -self.screen_w * 0.4
+                    self.shown_popup = False
+                    self.popup_text_show = False
+                    self.popup_closing = False
+            else:
+                if self.popup_x < self.target_x:
+                    self.popup_x += self.slide_speed
+                    if self.popup_x > self.target_x:
+                        self.popup_x = self.target_x
+            
+            self.screen.blit(popup_surface, (self.popup_x, 0))
+        else:
+            self.popup_x = -self.screen_w * 0.4
+
+
         # Draw separator
-        pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)   
+        pg.draw.line(self.screen, self.WHITE, (LEFT_PANEL_WIDTH, 0), (LEFT_PANEL_WIDTH, self.screen_h), 2)
+
+    def niveau_fini(self):
+        if not self.fin:
+            choix = random.randint(1, 2) 
+            pg.mixer_music.load(f"music/Fin/win{choix}.mp3")
+            pg.mixer_music.set_volume(1) if choix == 1 else pg.mixer_music.set_volume(0.1)
+            pg.mixer_music.play(-1)
+        self.fin = True
+
 
     def answer(self):
-        import math
-        
+        import math        
         # Initialize angle for circular motion if not exists
         if not hasattr(self, 'circle_angle'):
             self.circle_angle = 0
@@ -2232,18 +3727,6 @@ Equipe de 2Methylbutan2ol-Serpentes
             text = pg.transform.rotate(text, self.text_angle)
             self.text_rect = text.get_rect(center=(center_x, center_y))
             self.screen.blit(text, self.text_rect)
-            
-            # # Python GIF
-            # ret, frame = self.video.read()
-            # if not ret:
-            #     self.video.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            #     ret, frame = self.video.read()
-            
-            # frame = cv2.resize(frame, (100, 100))
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # frame_surface = pg.surfarray.make_surface(frame)
-            # frame_rect = frame_surface.get_rect(center=(python_x, python_y))
-            # self.screen.blit(pg.transform.rotate(frame_surface, -90), frame_rect)
 
             # Images.png with random rotation
             try:
@@ -2362,11 +3845,6 @@ Equipe de 2Methylbutan2ol-Serpentes
             # Handle recipe scrolling
             elif event.type == pg.MOUSEWHEEL and self.recipe_shown:
                 self.recipe_scroll += event.y * 20
-
-
-
-
-
 
     def exit(self):
         self.video.release()
